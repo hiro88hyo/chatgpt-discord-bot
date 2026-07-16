@@ -65,9 +65,8 @@ resource "google_cloudfunctions2_function" "frontend" {
     service_account_email            = local.frontend_service_account_email
 
     environment_variables = {
-      GCP_PROJECT_ID      = var.project_id
-      PUBSUB_TOPIC_CHAT   = var.pubsub_topic_name
-      DEFAULT_AI_PROVIDER = var.default_ai_provider
+      GCP_PROJECT_ID    = var.project_id
+      PUBSUB_TOPIC_CHAT = var.pubsub_topic_name
     }
 
     secret_environment_variables {
@@ -77,6 +76,8 @@ resource "google_cloudfunctions2_function" "frontend" {
       version    = "latest"
     }
   }
+
+  depends_on = [google_cloudfunctions2_function.backend]
 }
 
 resource "google_cloudfunctions2_function" "backend" {
@@ -108,9 +109,13 @@ resource "google_cloudfunctions2_function" "backend" {
     service_account_email          = local.backend_service_account_email
 
     environment_variables = {
-      OPENAI_MODEL          = var.openai_model
-      GEMINI_MODEL          = var.gemini_model
-      HISTORY_MESSAGE_LIMIT = tostring(var.history_message_limit)
+      GCP_PROJECT_ID           = var.project_id
+      DEFAULT_AI_PROVIDER      = var.default_ai_provider
+      OPENAI_MODEL             = var.openai_model
+      GEMINI_MODEL             = var.gemini_model
+      MODEL_CONFIG_PARAMETER   = "discord-bot-model-config"
+      MODEL_CONFIG_TTL_SECONDS = "60"
+      HISTORY_MESSAGE_LIMIT    = tostring(var.history_message_limit)
     }
 
     secret_environment_variables {

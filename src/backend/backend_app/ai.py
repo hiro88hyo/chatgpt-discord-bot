@@ -7,12 +7,14 @@ from google.genai import types
 from openai import OpenAI
 
 from backend_app.config import ConfigurationError, Settings
+from backend_app.model_config import ModelConfig
 from backend_app.models import ConversationMessage
 
 
 class AiService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, model_config: ModelConfig) -> None:
         self._settings = settings
+        self._model_config = model_config
 
     def generate(
         self,
@@ -41,7 +43,7 @@ class AiService:
             api_key=self._settings.openai_api_key,
             timeout=self._settings.http_timeout_seconds,
         ).responses.create(
-            model=self._settings.openai_model,
+            model=self._model_config.openai_model,
             instructions=self._settings.system_prompt,
             input=input_messages,
         )
@@ -62,7 +64,7 @@ class AiService:
         transcript.append(f"ユーザー: {prompt}")
         client = genai.Client(api_key=self._settings.gemini_api_key)
         response = client.models.generate_content(
-            model=self._settings.gemini_model,
+            model=self._model_config.gemini_model,
             contents="\n\n".join(transcript),
             config=types.GenerateContentConfig(
                 system_instruction=self._settings.system_prompt

@@ -6,6 +6,10 @@ output "deploy_service_account" {
   value = google_service_account.deploy.email
 }
 
+output "model_config_parameter" {
+  value = google_parameter_manager_parameter.model_config.parameter_id
+}
+
 output "secret_names" {
   value = {
     discord_public_key = google_secret_manager_secret.discord_public_key.secret_id

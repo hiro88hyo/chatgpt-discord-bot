@@ -26,9 +26,9 @@ class ChatRequest:
     channel_id: str
     channel_type: int
     prompt: str
-    provider: str
+    provider: str | None
 
-    def to_dict(self) -> dict[str, str | int]:
+    def to_dict(self) -> dict[str, str | int | None]:
         return {
             "application_id": self.application_id,
             "interaction_token": self.interaction_token,
@@ -63,7 +63,7 @@ def _required_string(value: Any, label: str) -> str:
     return value.strip()
 
 
-def parse_chat_request(body: Mapping[str, Any], default_provider: str) -> ChatRequest:
+def parse_chat_request(body: Mapping[str, Any]) -> ChatRequest:
     data = body.get("data")
     channel = body.get("channel")
     if not isinstance(data, Mapping) or not isinstance(channel, Mapping):
@@ -81,8 +81,9 @@ def parse_chat_request(body: Mapping[str, Any], default_provider: str) -> ChatRe
     }
 
     prompt = _required_string(options.get("prompt"), "プロンプト")
-    provider = str(options.get("provider", default_provider)).lower()
-    if provider not in SUPPORTED_PROVIDERS:
+    raw_provider = options.get("provider")
+    provider = str(raw_provider).lower() if raw_provider is not None else None
+    if provider is not None and provider not in SUPPORTED_PROVIDERS:
         raise InteractionError("指定された AI プロバイダーには対応していません。")
 
     try:

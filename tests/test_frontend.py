@@ -17,6 +17,18 @@ def test_frontend_settings_require_values() -> None:
         Settings.from_env({})
 
 
+def test_frontend_settings_load_valid_environment() -> None:
+    settings = Settings.from_env(
+        {
+            "GCP_PROJECT_ID": "project",
+            "PUBSUB_TOPIC_CHAT": "topic",
+            "DISCORD_PUBLIC_KEY": "00" * 32,
+        }
+    )
+
+    assert settings.project_id == "project"
+
+
 def test_signature_verification() -> None:
     signing_key = SigningKey.generate()
     body = b'{"type":1}'
@@ -49,7 +61,6 @@ def test_parse_chat_request() -> None:
                 ],
             },
         },
-        "openai",
     )
 
     assert request.prompt == "hello"
@@ -66,8 +77,23 @@ def test_parse_chat_request_rejects_missing_prompt() -> None:
                 "channel": {"id": "channel", "type": 0},
                 "data": {"name": "chat"},
             },
-            "openai",
         )
+
+
+def test_parse_chat_request_leaves_provider_unset() -> None:
+    request = parse_chat_request(
+        {
+            "application_id": "app",
+            "token": "token",
+            "channel": {"id": "channel", "type": 0},
+            "data": {
+                "name": "chat",
+                "options": [{"name": "prompt", "value": "hello"}],
+            },
+        }
+    )
+
+    assert request.provider is None
 
 
 def test_publisher_waits_for_pubsub_acknowledgement() -> None:

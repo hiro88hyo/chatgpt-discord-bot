@@ -23,18 +23,12 @@ class Settings:
     project_id: str
     pubsub_topic: str
     discord_public_key: str
-    default_provider: str = "openai"
     publish_timeout_seconds: float = 2.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ) -> Settings:
-        provider = env.get("DEFAULT_AI_PROVIDER", "openai").strip().lower()
-        if provider not in {"openai", "gemini"}:
-            raise ConfigurationError("DEFAULT_AI_PROVIDER must be 'openai' or 'gemini'")
-
         return cls(
             project_id=_required(env, "GCP_PROJECT_ID"),
             pubsub_topic=_required(env, "PUBSUB_TOPIC_CHAT"),
             discord_public_key=_required(env, "DISCORD_PUBLIC_KEY"),
-            default_provider=provider,
         )

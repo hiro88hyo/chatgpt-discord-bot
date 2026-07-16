@@ -7,6 +7,7 @@ locals {
     "eventarc.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
+    "parametermanager.googleapis.com",
     "pubsub.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
@@ -17,6 +18,7 @@ locals {
   deploy_project_roles = toset([
     "roles/cloudfunctions.developer",
     "roles/eventarc.developer",
+    "roles/parametermanager.parameterVersionAdder",
     "roles/pubsub.viewer",
     "roles/run.admin",
     "roles/secretmanager.viewer",
@@ -107,6 +109,15 @@ resource "google_secret_manager_secret" "gemini_api_key" {
   depends_on = [google_project_service.required]
 }
 
+resource "google_parameter_manager_parameter" "model_config" {
+  project         = var.project_id
+  parameter_id    = "discord-bot-model-config"
+  format          = "JSON"
+  deletion_policy = "PREVENT"
+
+  depends_on = [google_project_service.required]
+}
+
 resource "google_service_account" "frontend" {
   project      = var.project_id
   account_id   = "discord-bot-frontend"
@@ -160,6 +171,12 @@ resource "google_pubsub_topic_iam_member" "frontend_publisher" {
 resource "google_project_iam_member" "backend_event_receiver" {
   project = var.project_id
   role    = "roles/eventarc.eventReceiver"
+  member  = "serviceAccount:${google_service_account.backend.email}"
+}
+
+resource "google_project_iam_member" "backend_parameter_accessor" {
+  project = var.project_id
+  role    = "roles/parametermanager.parameterAccessor"
   member  = "serviceAccount:${google_service_account.backend.email}"
 }
 

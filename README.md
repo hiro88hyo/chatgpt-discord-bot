@@ -33,15 +33,18 @@ Discord
 - `GCP_PROJECT_ID`
 - `PUBSUB_TOPIC_CHAT`
 - `DISCORD_PUBLIC_KEY`
-- `DEFAULT_AI_PROVIDER`（任意、`openai` または `gemini`）
 
 バックエンド:
 
+- `GCP_PROJECT_ID`
 - `DISCORD_BOT_TOKEN`
 - `OPENAI_API_KEY`（OpenAI を使う場合）
 - `GEMINI_API_KEY`（Gemini を使う場合）
-- `OPENAI_MODEL`（任意、既定値 `gpt-4o-mini`）
-- `GEMINI_MODEL`（任意、既定値 `gemini-2.5-flash`）
+- `MODEL_CONFIG_PARAMETER`（任意、既定値 `discord-bot-model-config`）
+- `MODEL_CONFIG_TTL_SECONDS`（任意、既定値 `60`）
+- `DEFAULT_AI_PROVIDER`（Parameter取得失敗時の既定値）
+- `OPENAI_MODEL`（Parameter取得失敗時の既定値）
+- `GEMINI_MODEL`（Parameter取得失敗時の既定値）
 - `SYSTEM_PROMPT`（任意）
 - `HISTORY_MESSAGE_LIMIT`（任意、既定値 `20`）
 
@@ -80,13 +83,23 @@ Google Cloudへ鍵レス認証します。
 
 初回だけ、管理者が以下を行います。
 
-1. `infra/bootstrap` でstate bucket、IAM、WIF、Secretの入れ物を作成
-2. Secret Managerへ秘密値の初期バージョンを追加
-3. GitHubの `production` EnvironmentとRepository Variablesを設定
-4. workflowを手動実行、または `main` へマージ
+1. `infra/state` でstate bucketを作成
+2. `infra/bootstrap` でIAM、WIF、Pub/Sub、Secret、Parameterを作成
+3. Secret Managerへ秘密値の初期バージョンを追加
+4. GitHubの `production` EnvironmentとRepository Variablesを設定
+5. workflowを手動実行、または `main` へマージ
 
 詳しい手順、既存Functionのimport方法、必要なGitHub変数は
 [`infra/README.md`](infra/README.md) を参照してください。
+
+## モデルの変更
+
+モデル設定はGoogle Cloud Parameter Managerから最大60秒間隔で更新されるため、
+Functionの再デプロイは不要です。GitHub Actionsの `Update model configuration` を
+`main` ブランチから手動実行し、既定プロバイダーと両モデルIDを入力してください。
+
+設定取得に失敗した場合は、直近に取得できた設定を使います。起動後に一度も取得
+できていない場合だけ、環境変数の既定値へフォールバックします。
 
 ## セキュリティ上の注意
 

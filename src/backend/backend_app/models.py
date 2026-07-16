@@ -25,7 +25,7 @@ class ChatJob:
     channel_id: str
     channel_type: int
     prompt: str
-    provider: str
+    provider: str | None
 
     @property
     def is_thread(self) -> bool:
@@ -39,14 +39,14 @@ class ChatJob:
             "channel_id",
             "channel_type",
             "prompt",
-            "provider",
         )
         missing = [name for name in required if payload.get(name) in (None, "")]
         if missing:
             raise ValueError(f"Pub/Sub payload is missing: {', '.join(missing)}")
 
-        provider = str(payload["provider"]).lower()
-        if provider not in SUPPORTED_PROVIDERS:
+        raw_provider = payload.get("provider")
+        provider = str(raw_provider).lower() if raw_provider is not None else None
+        if provider is not None and provider not in SUPPORTED_PROVIDERS:
             raise ValueError(f"Unsupported AI provider: {provider}")
 
         return cls(

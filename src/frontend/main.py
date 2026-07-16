@@ -53,7 +53,7 @@ def main(request: Request):
         return _message("この操作には対応していません。")
 
     try:
-        chat_request = parse_chat_request(body, settings.default_provider)
+        chat_request = parse_chat_request(body)
         ChatPublisher(settings).publish(chat_request)
     except InteractionError as exc:
         return _message(str(exc))

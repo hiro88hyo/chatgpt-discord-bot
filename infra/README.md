@@ -58,6 +58,10 @@ gcloud secrets versions add gemini-api-key --data-file=/secure/path/gemini-api-k
 All four secrets need at least one enabled version before the first deployment. Avoid putting
 real values in shell history; using a password manager or redirected secure file is preferable.
 
+Bootstrap also creates the `discord-bot-model-config` JSON parameter. Its versions are managed
+outside Terraform so normal model changes never trigger a Function deployment and never alter
+Terraform state.
+
 ## 4. Configure GitHub
 
 Create a `production` GitHub Environment and enable required reviewers. Add these repository
@@ -72,7 +76,14 @@ or environment variables using the values printed by `terraform output` in `infr
 
 No service-account JSON key or application secret is stored in GitHub.
 
-## 5. Deploy
+## 5. Set the model configuration
+
+Run the `Update model configuration` workflow from the `main` branch. Enter all three values;
+each run creates an auditable Parameter Manager version. Warm backend instances refresh the
+latest valid version within 60 seconds. To roll back, run the workflow again with the previous
+values.
+
+## 6. Deploy
 
 Merges to `main` that change `src/` or `infra/` trigger `.github/workflows/deploy.yml`.
 The workflow runs tests, creates a Terraform plan, waits for the production environment's
