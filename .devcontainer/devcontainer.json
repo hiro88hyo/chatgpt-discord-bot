@@ -1,15 +1,22 @@
 {
   "name": "ChatGPT Discord Bot",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
-    "ghcr.io/devcontainers/features/gcloud:1": {},
     "ghcr.io/devcontainers/features/terraform:1": {
       "version": "1.14.6"
     }
   },
-  "postCreateCommand": "pip install -r requirements-dev.txt",
+  "postCreateCommand": "python -m venv .venv-devcontainer && .venv-devcontainer/bin/pip install -r requirements-dev.txt",
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv-devcontainer/bin:${containerEnv:PATH}"
+  },
   "customizations": {
     "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv-devcontainer/bin/python"
+      },
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff"

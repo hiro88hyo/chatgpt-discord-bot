@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 .venv/
+.venv-devcontainer/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
