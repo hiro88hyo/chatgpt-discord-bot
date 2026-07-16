@@ -74,33 +74,19 @@ python scripts/register_discord_commands.py
 
 ## Google Cloud へのデプロイ
 
-```bash
-gcloud pubsub topics create discord-chat-requests
+インフラとFunctionの設定は `infra/` のTerraformで管理します。通常のデプロイは
+`main` へのマージを契機にGitHub Actionsが実行し、Workload Identity Federationで
+Google Cloudへ鍵レス認証します。
 
-gcloud functions deploy discord-interaction \
-  --gen2 \
-  --runtime=python311 \
-  --region=asia-northeast1 \
-  --source=src/frontend \
-  --entry-point=main \
-  --trigger-http \
-  --allow-unauthenticated \
-  --set-env-vars="GCP_PROJECT_ID=${PROJECT_ID},PUBSUB_TOPIC_CHAT=discord-chat-requests,DEFAULT_AI_PROVIDER=openai" \
-  --set-secrets="DISCORD_PUBLIC_KEY=discord-public-key:latest"
+初回だけ、管理者が以下を行います。
 
-gcloud functions deploy discord-chat-worker \
-  --gen2 \
-  --runtime=python311 \
-  --region=asia-northeast1 \
-  --source=src/backend \
-  --entry-point=main \
-  --trigger-topic=discord-chat-requests \
-  --set-env-vars="OPENAI_MODEL=gpt-4o-mini,GEMINI_MODEL=gemini-2.5-flash" \
-  --set-secrets="DISCORD_BOT_TOKEN=discord-bot-token:latest,OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest"
-```
+1. `infra/bootstrap` でstate bucket、IAM、WIF、Secretの入れ物を作成
+2. Secret Managerへ秘密値の初期バージョンを追加
+3. GitHubの `production` EnvironmentとRepository Variablesを設定
+4. workflowを手動実行、または `main` へマージ
 
-デプロイ前に、各 Function のサービスアカウントへ必要最小限の Pub/Sub と
-Secret Manager 権限を付与してください。
+詳しい手順、既存Functionのimport方法、必要なGitHub変数は
+[`infra/README.md`](infra/README.md) を参照してください。
 
 ## セキュリティ上の注意
 

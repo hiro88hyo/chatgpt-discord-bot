@@ -1,0 +1,79 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "infra/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Verify application
+        run: |
+          pytest
+          ruff check .
+          ruff format --check .
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ vars.GCP_REGION }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.6
+
+      - name: Initialize Terraform
+        run: |
+          terraform -chdir=infra init \
+            -backend-config="bucket=${{ vars.GCP_PROJECT_ID }}-discord-bot-tfstate" \
+            -backend-config="prefix=production/functions"
+
+      - name: Plan deployment
+        run: terraform -chdir=infra plan -out=deployment.tfplan
+
+      - name: Apply deployment
+        run: terraform -chdir=infra apply -auto-approve deployment.tfplan

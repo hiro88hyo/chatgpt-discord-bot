@@ -9,3 +9,11 @@ __pycache__/
 *.py[cod]
 *.log
 *serviceAccountKey.json
+gha-creds-*.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/.*-source.zip
