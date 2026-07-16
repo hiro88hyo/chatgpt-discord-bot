@@ -55,6 +55,7 @@ resource "google_cloudfunctions2_function" "frontend" {
   }
 
   service_config {
+    available_cpu                    = "1"
     available_memory                 = "256M"
     timeout_seconds                  = 10
     min_instance_count               = 0
