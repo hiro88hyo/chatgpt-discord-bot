@@ -1,48 +1,26 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/docker-in-docker
 {
-	"name": "GPT Discord bot",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"build": {
-        // Path is relataive to the devcontainer.json file.
-        "dockerfile": "../Dockerfile"
-	},
-
-	"workspaceFolder": "/workspaces",
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"vscode-icons-team.vscode-icons",
-				"MS-CEINTL.vscode-language-pack-ja",
-				"ryu1kn.partial-diff",
-				"mrmlnc.vscode-duplicate",
-				"xabikos.JavaScriptSnippets",
-				"formulahendry.auto-rename-tag",
-				"formulahendry.auto-close-tag",
-				"shardulm94.trailing-spaces",
-				"eamodio.gitlens",
-				"esbenp.prettier-vscode",
-				"dbaeumer.vscode-eslint",
-				"VisualStudioExptTeam.vscodeintellicode",
-				"dsznajder.es7-react-js-snippets",
-				"ms-python.python",
-				"oderwat.indent-rainbow"
-			]
-		}
-	},
+  "name": "ChatGPT Discord Bot",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
-    // コンテナでNode.jsをインストールしていない場合は、併せてインストールする
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.14.6"
+    }
+  },
+  "postCreateCommand": "python -m venv .venv-devcontainer && .venv-devcontainer/bin/pip install -r requirements-dev.txt",
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv-devcontainer/bin:${containerEnv:PATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv-devcontainer/bin/python"
+      },
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
   }
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
 }

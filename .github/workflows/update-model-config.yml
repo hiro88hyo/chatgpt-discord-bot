@@ -1,0 +1,85 @@
+name: Update model configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      default_provider:
+        description: Provider used when /chat omits the provider option
+        required: true
+        type: choice
+        default: openai
+        options:
+          - openai
+          - gemini
+      openai_model:
+        description: OpenAI model ID
+        required: true
+        type: string
+      gemini_model:
+        description: Gemini model ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: model-configuration
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEFAULT_PROVIDER: ${{ inputs.default_provider }}
+      OPENAI_MODEL: ${{ inputs.openai_model }}
+      GEMINI_MODEL: ${{ inputs.gemini_model }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Add model configuration version
+        shell: bash
+        run: |
+          if [[ -z "$OPENAI_MODEL" || -z "$GEMINI_MODEL" \
+            || ${#OPENAI_MODEL} -gt 200 || ${#GEMINI_MODEL} -gt 200 ]]; then
+            echo "Model IDs must contain between 1 and 200 characters." >&2
+            exit 1
+          fi
+
+          payload="$(jq -cn \
+            --arg default_provider "$DEFAULT_PROVIDER" \
+            --arg openai_model "$OPENAI_MODEL" \
+            --arg gemini_model "$GEMINI_MODEL" \
+            '{
+              default_provider: $default_provider,
+              openai_model: $openai_model,
+              gemini_model: $gemini_model
+            }')"
+          version_id="model-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          gcloud parametermanager parameters versions create "$version_id" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --parameter=discord-bot-model-config \
+            --location=global \
+            --payload-data="$payload"
+
+          {
+            echo "### Model configuration updated"
+            echo "- Version: \`$version_id\`"
+            echo "- Default provider: \`$DEFAULT_PROVIDER\`"
+            echo "- OpenAI: \`$OPENAI_MODEL\`"
+            echo "- Gemini: \`$GEMINI_MODEL\`"
+          } >> "$GITHUB_STEP_SUMMARY"

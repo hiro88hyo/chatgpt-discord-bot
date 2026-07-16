@@ -1,8 +1,5 @@
-flask==3.1.1
-google-cloud-functions==1.20.4
-google-cloud-logging==3.12.1
-google-cloud-pubsub==2.30.0
-openai==1.90.0
-google-genai==1.39.1
 functions-framework==3.8.3
-python-dateutil==2.9.0.post0
+google-cloud-parametermanager==0.4.1
+google-genai==1.39.1
+openai==1.90.0
+requests==2.32.4

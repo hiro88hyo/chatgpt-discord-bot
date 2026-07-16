@@ -1,5 +1,20 @@
-.env*
-
+.env
+.env.*
+!.env.example
+.venv/
+.venv-devcontainer/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+*.log
 *serviceAccountKey.json
+gha-creds-*.json
 
-*.vsix
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/.*-source.zip

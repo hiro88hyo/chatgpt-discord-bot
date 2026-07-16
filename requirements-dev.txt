@@ -1,0 +1,4 @@
+-r src/frontend/requirements.txt
+-r src/backend/requirements.txt
+pytest==8.4.1
+ruff==0.12.2
