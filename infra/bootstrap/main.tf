@@ -222,6 +222,12 @@ resource "google_storage_bucket_iam_member" "deploy_source_writer" {
   member = "serviceAccount:${google_service_account.deploy.email}"
 }
 
+resource "google_storage_bucket_iam_member" "deploy_terraform_state_writer" {
+  bucket = "${var.project_id}-discord-bot-tfstate"
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.deploy.email}"
+}
+
 resource "google_service_account_iam_member" "deploy_act_as" {
   for_each = local.runtime_service_accounts
 

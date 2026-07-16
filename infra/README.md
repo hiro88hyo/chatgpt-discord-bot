@@ -41,7 +41,8 @@ terraform -chdir=infra/bootstrap apply \
 ```
 
 WIF accepts tokens only from the configured repository's `main` branch. Application secrets
-are never stored in Terraform state.
+are never stored in Terraform state. The deploy service account receives object access only to
+the dedicated source and Terraform state buckets.
 
 ## 3. Add secret versions
 
