@@ -105,12 +105,12 @@ terraform -chdir=infra init \
 terraform -chdir=infra import \
   -var="project_id=YOUR_PROJECT_ID" \
   google_cloudfunctions2_function.frontend \
-  projects/YOUR_PROJECT_ID/locations/asia-northeast1/functions/discord-interaction
+  projects/YOUR_PROJECT_ID/locations/asia-northeast1/functions/chatgpt-api-discord
 
 terraform -chdir=infra import \
   -var="project_id=YOUR_PROJECT_ID" \
   google_cloudfunctions2_function.backend \
-  projects/YOUR_PROJECT_ID/locations/asia-northeast1/functions/discord-chat-worker
+  projects/YOUR_PROJECT_ID/locations/asia-northeast1/functions/chatgpt-api-discord-backend
 ```
 
 Run a plan after importing. Do not apply until every proposed replacement or deletion has been

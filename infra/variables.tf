@@ -12,13 +12,13 @@ variable "region" {
 variable "frontend_function_name" {
   description = "HTTP function that accepts Discord interactions."
   type        = string
-  default     = "discord-interaction"
+  default     = "chatgpt-api-discord"
 }
 
 variable "backend_function_name" {
   description = "Pub/Sub function that calls the AI provider."
   type        = string
-  default     = "discord-chat-worker"
+  default     = "chatgpt-api-discord-backend"
 }
 
 variable "pubsub_topic_name" {
