@@ -6,6 +6,11 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+DEFAULT_SYSTEM_PROMPT = (
+    "あなたは優秀なアシスタントです。"
+    "ユーザーからの質問に対し700から800文字程度で簡潔に回答します。"
+)
+
 
 class ConfigurationError(RuntimeError):
     """Raised when required configuration is missing or invalid."""
@@ -71,7 +76,7 @@ class Settings:
             model_config_ttl_seconds=_positive_int(env, "MODEL_CONFIG_TTL_SECONDS", 60),
             system_prompt=env.get(
                 "SYSTEM_PROMPT",
-                "あなたは優秀なアシスタントです。質問に対して、正確かつ簡潔に日本語で回答してください。",
+                DEFAULT_SYSTEM_PROMPT,
             ).strip(),
             history_message_limit=_positive_int(env, "HISTORY_MESSAGE_LIMIT", 20),
         )

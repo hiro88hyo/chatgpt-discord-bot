@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from backend_app import ai as ai_module
 from backend_app.ai import AiService
-from backend_app.config import ConfigurationError, Settings
+from backend_app.config import DEFAULT_SYSTEM_PROMPT, ConfigurationError, Settings
 from backend_app.discord import (
     ANSWER_LIMIT,
     DiscordClient,
@@ -65,6 +65,7 @@ def test_backend_settings_load_model_fallbacks() -> None:
     assert settings.fallback_default_provider == "gemini"
     assert settings.fallback_openai_model == "openai-fallback"
     assert settings.model_config_ttl_seconds == 60
+    assert settings.system_prompt == DEFAULT_SYSTEM_PROMPT
 
 
 def test_backend_settings_reject_empty_fallback_model() -> None:
