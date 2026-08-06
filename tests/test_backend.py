@@ -81,6 +81,7 @@ def test_backend_settings_default_to_gpt_5_6_terra() -> None:
     )
 
     assert settings.fallback_openai_model == "gpt-5.6-terra"
+    assert settings.fallback_gemini_model == "gemini-3.5-flash"
 
 
 def test_backend_settings_reject_empty_fallback_model() -> None:
