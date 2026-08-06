@@ -41,7 +41,7 @@ variable "default_ai_provider" {
 variable "openai_model" {
   description = "OpenAI model ID passed to the Responses API."
   type        = string
-  default     = "gpt-4o-mini"
+  default     = "gpt-5.6-terra"
 }
 
 variable "gemini_model" {

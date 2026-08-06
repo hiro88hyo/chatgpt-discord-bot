@@ -72,6 +72,17 @@ def test_backend_settings_load_model_fallbacks() -> None:
     )
 
 
+def test_backend_settings_default_to_gpt_5_6_terra() -> None:
+    settings = Settings.from_env(
+        {
+            "DISCORD_BOT_TOKEN": "token",
+            "GCP_PROJECT_ID": "project",
+        }
+    )
+
+    assert settings.fallback_openai_model == "gpt-5.6-terra"
+
+
 def test_backend_settings_reject_empty_fallback_model() -> None:
     with pytest.raises(ConfigurationError, match="OPENAI_MODEL"):
         Settings.from_env(
@@ -270,6 +281,37 @@ def test_openai_provider_uses_responses_api(monkeypatch: pytest.MonkeyPatch) -> 
         "role": "user",
         "content": "current question",
     }
+    assert "reasoning" not in captured
+
+
+def test_gpt_5_6_preserves_non_reasoning_response_behavior(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = {}
+
+    class Responses:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(output_text="generated answer")
+
+    class Client:
+        responses = Responses()
+
+    monkeypatch.setattr(ai_module, "OpenAI", lambda **_kwargs: Client())
+    model_config = ModelConfig(
+        default_provider="openai",
+        openai_model="gpt-5.6-terra",
+        gemini_model="gemini-model",
+    )
+
+    AiService(_settings(), model_config).generate(
+        provider="openai",
+        history=[],
+        prompt="current question",
+    )
+
+    assert captured["model"] == "gpt-5.6-terra"
+    assert captured["reasoning"] == {"effort": "none"}
 
 
 def test_gemini_provider_includes_history(monkeypatch: pytest.MonkeyPatch) -> None:

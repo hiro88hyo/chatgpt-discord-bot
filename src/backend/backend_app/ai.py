@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from google import genai
 from google.genai import types
 from openai import OpenAI
@@ -39,14 +41,18 @@ class AiService:
             {"role": message.role, "content": message.content} for message in history
         ]
         input_messages.append({"role": "user", "content": prompt})
+        request: dict[str, Any] = {
+            "model": self._model_config.openai_model,
+            "instructions": self._settings.system_prompt,
+            "input": input_messages,
+        }
+        if self._model_config.openai_model.startswith("gpt-5.6"):
+            request["reasoning"] = {"effort": "none"}
+
         response = OpenAI(
             api_key=self._settings.openai_api_key,
             timeout=self._settings.http_timeout_seconds,
-        ).responses.create(
-            model=self._model_config.openai_model,
-            instructions=self._settings.system_prompt,
-            input=input_messages,
-        )
+        ).responses.create(**request)
         if not response.output_text:
             raise RuntimeError("OpenAI returned an empty response")
         return response.output_text.strip()
