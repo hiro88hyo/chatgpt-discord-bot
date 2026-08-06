@@ -10,8 +10,8 @@ import requests
 from backend_app.models import ChatJob, ConversationMessage
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
-QUESTION_LIMIT = 1_000
-ANSWER_LIMIT = 4_500
+QUESTION_LIMIT = 2_000
+ANSWER_LIMIT = 4_000
 TRUNCATION_MARKER = "\n\n…（長文のため省略しました）"
 
 
@@ -21,20 +21,15 @@ def truncate(text: str, limit: int) -> str:
     return text[: limit - len(TRUNCATION_MARKER)].rstrip() + TRUNCATION_MARKER
 
 
-def build_response_payload(prompt: str, answer: str) -> dict[str, Any]:
+def build_response_payload(prompt: str, answer: str, model_name: str) -> dict[str, Any]:
     return {
-        "content": "",
+        "content": truncate(prompt, QUESTION_LIMIT),
         "embeds": [
-            {
-                "title": "質問",
-                "description": truncate(prompt, QUESTION_LIMIT),
-                "color": 0x55C500,
-            },
             {
                 "title": "回答",
                 "description": truncate(answer, ANSWER_LIMIT),
                 "color": 0x55C500,
-                "footer": {"text": "chat-gpt-discord-bot"},
+                "author": {"name": model_name},
             },
         ],
         "allowed_mentions": {"parse": []},
@@ -49,6 +44,8 @@ def extract_conversation(
         embeds = message.get("embeds")
         if not isinstance(embeds, list):
             continue
+
+        # Continue to read messages emitted by the post-refactor two-embed UI.
         question = next(
             (
                 embed.get("description")
@@ -73,6 +70,37 @@ def extract_conversation(
                 [
                     ConversationMessage(role="user", content=question),
                     ConversationMessage(role="assistant", content=answer),
+                ]
+            )
+            continue
+
+        # The initial UI puts the prompt in message content and the answer in a
+        # single embed. Discord marks application-command responses as type 20.
+        content = message.get("content")
+        initial_answer = next(
+            (
+                embed.get("description")
+                for embed in embeds
+                if isinstance(embed, Mapping)
+                and embed.get("title") == "回答"
+                and isinstance(embed.get("author"), Mapping)
+                and isinstance(embed["author"].get("name"), str)
+            ),
+            None,
+        )
+        flags = message.get("flags", 0)
+        is_ephemeral = isinstance(flags, int) and bool(flags & (1 << 6))
+        if (
+            message.get("type") == 20
+            and not is_ephemeral
+            and isinstance(content, str)
+            and content
+            and isinstance(initial_answer, str)
+        ):
+            conversation.extend(
+                [
+                    ConversationMessage(role="user", content=content),
+                    ConversationMessage(role="assistant", content=initial_answer),
                 ]
             )
     return conversation
@@ -104,10 +132,10 @@ class DiscordClient:
             raise RuntimeError("Discord message history response is not a list")
         return extract_conversation(payload)
 
-    def complete_interaction(self, job: ChatJob, answer: str) -> None:
+    def complete_interaction(self, job: ChatJob, answer: str, model_name: str) -> None:
         response = self._session.patch(
             self._interaction_url(job),
-            json=build_response_payload(job.prompt, answer),
+            json=build_response_payload(job.prompt, answer, model_name),
             timeout=self._timeout,
         )
         response.raise_for_status()

@@ -17,18 +17,18 @@ def main() -> None:
             {
                 "name": "chat",
                 "type": 1,
-                "description": "AI アシスタントに質問します",
+                "description": "ChatGPTに話しかける",
                 "options": [
                     {
                         "name": "prompt",
-                        "description": "質問内容",
+                        "description": "プロンプト",
                         "type": 3,
                         "required": True,
                         "max_length": 2_000,
                     },
                     {
                         "name": "provider",
-                        "description": "使用する AI",
+                        "description": "LLM Engine",
                         "type": 3,
                         "required": False,
                         "choices": [

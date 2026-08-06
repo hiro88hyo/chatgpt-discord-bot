@@ -66,6 +66,10 @@ def test_backend_settings_load_model_fallbacks() -> None:
     assert settings.fallback_openai_model == "openai-fallback"
     assert settings.model_config_ttl_seconds == 60
     assert settings.system_prompt == DEFAULT_SYSTEM_PROMPT
+    assert settings.system_prompt == (
+        "あなたは優秀なアシスタントです。"
+        "ユーザーからの質問に対し700から800文字程度で簡潔に回答します。"
+    )
 
 
 def test_backend_settings_reject_empty_fallback_model() -> None:
@@ -141,16 +145,34 @@ def test_decode_pubsub_event_allows_backend_default_provider() -> None:
 
 
 def test_payload_obeys_answer_limit_and_disables_mentions() -> None:
-    payload = build_response_payload("question", "@everyone " + "a" * ANSWER_LIMIT)
+    payload = build_response_payload(
+        "question", "@everyone " + "a" * ANSWER_LIMIT, "gemini-model"
+    )
 
-    assert len(payload["embeds"][1]["description"]) <= ANSWER_LIMIT
+    assert payload["content"] == "question"
+    assert len(payload["embeds"]) == 1
+    assert payload["embeds"][0]["title"] == "回答"
+    assert payload["embeds"][0]["author"] == {"name": "gemini-model"}
+    assert len(payload["embeds"][0]["description"]) <= ANSWER_LIMIT
     assert payload["allowed_mentions"] == {"parse": []}
-    assert payload["embeds"][1]["description"].endswith("…（長文のため省略しました）")
+    assert payload["embeds"][0]["description"].endswith("…（長文のため省略しました）")
 
 
 def test_extract_conversation_ignores_unrelated_embeds() -> None:
     messages = [
         {"embeds": [{"title": "unrelated", "description": "ignore"}]},
+        {
+            "type": 20,
+            "flags": 0,
+            "content": "newest question",
+            "embeds": [
+                {
+                    "title": "回答",
+                    "description": "newest answer",
+                    "author": {"name": "gemini-model"},
+                }
+            ],
+        },
         {
             "embeds": [
                 {"title": "質問", "description": "new question"},
@@ -180,6 +202,8 @@ def test_extract_conversation_ignores_unrelated_embeds() -> None:
         "old answer",
         "new question",
         "new answer",
+        "newest question",
+        "newest answer",
     ]
 
 
@@ -208,13 +232,16 @@ def test_discord_client_only_authenticates_bot_api_requests() -> None:
     job = ChatJob("app", "interaction-token", "channel", 0, "question", "openai")
 
     client.fetch_conversation("channel", 20)
-    client.complete_interaction(job, "answer")
+    client.complete_interaction(job, "answer", "openai-model")
 
     assert session.get_args[1]["headers"] == {"Authorization": "Bot secret"}
     assert "headers" not in session.patch_args[1]
     assert session.patch_args[0].endswith(
         "/webhooks/app/interaction-token/messages/@original"
     )
+    assert session.patch_args[1]["json"]["embeds"][0]["author"] == {
+        "name": "openai-model"
+    }
 
 
 def test_openai_provider_uses_responses_api(monkeypatch: pytest.MonkeyPatch) -> None:

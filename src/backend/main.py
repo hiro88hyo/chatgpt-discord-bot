@@ -36,12 +36,18 @@ def main(cloud_event) -> None:
             history = discord.fetch_conversation(
                 job.channel_id, settings.history_message_limit
             )
+        provider = job.provider or model_config.default_provider
         answer = AiService(settings, model_config).generate(
-            provider=job.provider or model_config.default_provider,
+            provider=provider,
             history=history,
             prompt=job.prompt,
         )
-        discord.complete_interaction(job, answer)
+        model_name = (
+            model_config.openai_model
+            if provider == "openai"
+            else model_config.gemini_model
+        )
+        discord.complete_interaction(job, answer, model_name)
     except Exception:
         logger.exception(
             "Chat processing failed (application_id=%s, channel_id=%s)",
