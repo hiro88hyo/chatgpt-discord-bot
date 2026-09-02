@@ -69,7 +69,7 @@ class Settings:
             project_id=_required(env, "GCP_PROJECT_ID"),
             fallback_default_provider=default_provider,
             fallback_openai_model=_configured(env, "OPENAI_MODEL", "gpt-5.6-terra"),
-            fallback_gemini_model=_configured(env, "GEMINI_MODEL", "gemini-3.5-flash"),
+            fallback_gemini_model=_configured(env, "GEMINI_MODEL", "gemini-3.8-flash"),
             model_config_parameter=_configured(
                 env, "MODEL_CONFIG_PARAMETER", "discord-bot-model-config"
             ),

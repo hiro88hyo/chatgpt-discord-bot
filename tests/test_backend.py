@@ -72,7 +72,7 @@ def test_backend_settings_load_model_fallbacks() -> None:
     )
 
 
-def test_backend_settings_default_to_gpt_5_6_terra() -> None:
+def test_backend_settings_use_current_default_models() -> None:
     settings = Settings.from_env(
         {
             "DISCORD_BOT_TOKEN": "token",
@@ -81,7 +81,7 @@ def test_backend_settings_default_to_gpt_5_6_terra() -> None:
     )
 
     assert settings.fallback_openai_model == "gpt-5.6-terra"
-    assert settings.fallback_gemini_model == "gemini-3.5-flash"
+    assert settings.fallback_gemini_model == "gemini-3.8-flash"
 
 
 def test_backend_settings_reject_empty_fallback_model() -> None:
@@ -328,14 +328,20 @@ def test_gemini_provider_includes_history(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(ai_module.genai, "Client", lambda **_kwargs: Client())
 
-    answer = AiService(_settings(), _model_config()).generate(
+    model_config = ModelConfig(
+        default_provider="gemini",
+        openai_model="openai-model",
+        gemini_model="gemini-3.8-flash",
+    )
+
+    answer = AiService(_settings(), model_config).generate(
         provider="gemini",
         history=[ConversationMessage("assistant", "earlier answer")],
         prompt="current question",
     )
 
     assert answer == "generated answer"
-    assert captured["model"] == "gemini-model"
+    assert captured["model"] == "gemini-3.8-flash"
     assert "アシスタント: earlier answer" in captured["contents"]
     assert "ユーザー: current question" in captured["contents"]
 

@@ -47,7 +47,7 @@ variable "openai_model" {
 variable "gemini_model" {
   description = "Gemini model ID."
   type        = string
-  default     = "gemini-3.5-flash"
+  default     = "gemini-3.8-flash"
 }
 
 variable "history_message_limit" {
