@@ -112,6 +112,7 @@ Functionの再デプロイは不要です。GitHub Actionsの `Update model conf
 OpenRouter の既定値 `openrouter/auto` はプロンプトに応じて利用モデルを選びます。
 固定したい場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
 スラッシュコマンドの `model` を選んだリクエストでは、そのモデルIDが既定設定より優先されます。
+OpenRouter が別のモデルへ振り分けた場合、回答には「指定モデル → 実際のモデル」を表示します。
 
 設定取得に失敗した場合は、直近に取得できた設定を使います。起動後に一度も取得
 できていない場合だけ、環境変数の既定値へフォールバックします。
