@@ -76,9 +76,10 @@ python scripts/register_discord_commands.py
 ```
 
 このスクリプトは `PUT` でグローバルコマンド一覧を同期します。反映には時間がかかる場合があります。
-`/chat` の `model` では Auto、Claude Sonnet 5、GPT-5.6 Terra、Gemini 3.8 Flash、
-DeepSeek V4.1 Flash から選べます。`model` を選ぶと `provider` を省略しても OpenRouter
-を使います。`model` を省略した場合は、従来どおりプロバイダーの既定モデルを使います。
+`/chat` の `model` では Gemini 3.8 Flash、Claude Opus 5.5、GPT-6 Astra、
+DeepSeek V4.1 Flash、Claude Fable 5.1 から選べます。`model` を選ぶと
+`provider` を省略しても OpenRouter を使います。`model` を省略した場合は、
+従来どおりプロバイダーの既定モデルを使います。
 `provider` に OpenAI または Gemini を選ぶ場合、`model` は指定できません。
 候補を変更したときは、Function のデプロイ後にこのスクリプトを再実行してください。
 

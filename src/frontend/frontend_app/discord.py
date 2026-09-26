@@ -15,11 +15,11 @@ CHAT_COMMAND = "chat"
 SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
 OPENROUTER_MODEL_IDS = frozenset(
     {
-        "openrouter/auto",
-        "anthropic/claude-sonnet-5",
-        "openai/gpt-5.6-terra",
         "google/gemini-3.8-flash",
+        "anthropic/claude-opus-5.5",
+        "openai/gpt-6-astra",
         "deepseek/deepseek-v4.1-flash",
+        "anthropic/claude-fable-5.1",
     }
 )
 

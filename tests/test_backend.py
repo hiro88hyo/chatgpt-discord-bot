@@ -249,7 +249,8 @@ def test_decode_pubsub_event_model_selects_openrouter() -> None:
     ("provider", "model"),
     [
         (None, "unlisted/model"),
-        ("gemini", "openrouter/auto"),
+        (None, "openrouter/auto"),
+        ("gemini", "anthropic/claude-fable-5.1"),
     ],
 )
 def test_decode_pubsub_event_rejects_invalid_model(
@@ -708,10 +709,10 @@ def test_openrouter_provider_passes_selected_model(
         provider="openrouter",
         history=[],
         prompt="question",
-        model="anthropic/claude-sonnet-5",
+        model="anthropic/claude-opus-5.5",
     )
 
-    assert request["model"] == "anthropic/claude-sonnet-5"
+    assert request["model"] == "anthropic/claude-opus-5.5"
 
 
 def test_openrouter_provider_requires_key() -> None:

@@ -26,7 +26,14 @@ def test_register_chat_model_choices_match_runtime_validation(monkeypatch) -> No
 
     assert captured["url"].endswith("/applications/app/commands")
     options = {option["name"]: option for option in captured["options"]}
-    model_ids = {choice["value"] for choice in options["model"]["choices"]}
-    assert model_ids == FRONTEND_MODEL_IDS == BACKEND_MODEL_IDS
+    model_ids = [choice["value"] for choice in options["model"]["choices"]]
+    assert model_ids == [
+        "google/gemini-3.8-flash",
+        "anthropic/claude-opus-5.5",
+        "openai/gpt-6-astra",
+        "deepseek/deepseek-v4.1-flash",
+        "anthropic/claude-fable-5.1",
+    ]
+    assert set(model_ids) == FRONTEND_MODEL_IDS == BACKEND_MODEL_IDS
     assert len(model_ids) <= 25
     assert options["model"]["required"] is False
