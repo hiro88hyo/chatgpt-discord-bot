@@ -33,7 +33,7 @@ def build_response_payload(prompt: str, answer: str, model_name: str) -> dict[st
                 "title": "回答",
                 "description": truncate(answer, ANSWER_LIMIT),
                 "color": 0x55C500,
-                "author": {"name": model_name},
+                "author": {"name": model_name[:256]},
             },
         ],
         "allowed_mentions": {"parse": []},

@@ -10,7 +10,7 @@ import pytest
 import requests
 from backend_app import ai as ai_module
 from backend_app import handler as handler_module
-from backend_app.ai import AiService
+from backend_app.ai import AiService, GeneratedAnswer
 from backend_app.config import DEFAULT_SYSTEM_PROMPT, ConfigurationError, Settings
 from backend_app.discord import (
     ANSWER_LIMIT,
@@ -284,6 +284,10 @@ def test_payload_obeys_answer_limit_and_disables_mentions() -> None:
     assert len(payload["embeds"][0]["description"]) <= ANSWER_LIMIT
     assert payload["allowed_mentions"] == {"parse": []}
     assert payload["embeds"][0]["description"].endswith("…（長文のため省略しました）")
+    assert (
+        len(build_response_payload("q", "a", "m" * 300)["embeds"][0]["author"]["name"])
+        == 256
+    )
 
 
 def test_extract_conversation_ignores_unrelated_embeds() -> None:
@@ -429,7 +433,9 @@ def test_handler_logs_and_raises_only_safe_error_details(
     monkeypatch.setattr(
         handler_module,
         "AiService",
-        lambda *_args: SimpleNamespace(generate=lambda **_kwargs: "private answer"),
+        lambda *_args: SimpleNamespace(
+            generate=lambda **_kwargs: GeneratedAnswer("private answer")
+        ),
     )
 
     with (
@@ -469,9 +475,9 @@ def test_handler_uses_openrouter_default_and_model_label(
             captured["answer"] = answer
             captured["model_name"] = model_name
 
-    def generate(**kwargs) -> str:
+    def generate(**kwargs) -> GeneratedAnswer:
         captured["provider"] = kwargs["provider"]
-        return "answer"
+        return GeneratedAnswer("answer")
 
     config = ModelConfig(
         default_provider="openrouter",
@@ -505,8 +511,22 @@ def test_handler_uses_openrouter_default_and_model_label(
     }
 
 
+@pytest.mark.parametrize(
+    ("selected_model", "actual_model", "expected_label"),
+    [
+        ("deepseek/deepseek-v4.1-flash", None, "deepseek/deepseek-v4.1-flash"),
+        (
+            "typesafe/jev-router",
+            "deepseek/deepseek-v4.1-flash",
+            "typesafe/jev-router → deepseek/deepseek-v4.1-flash",
+        ),
+    ],
+)
 def test_handler_uses_selected_openrouter_model(
     monkeypatch: pytest.MonkeyPatch,
+    selected_model: str,
+    actual_model: str | None,
+    expected_label: str,
 ) -> None:
     captured = {}
 
@@ -516,10 +536,10 @@ def test_handler_uses_selected_openrouter_model(
         ) -> None:
             captured["label"] = model_name
 
-    def generate(**kwargs) -> str:
+    def generate(**kwargs) -> GeneratedAnswer:
         captured["provider"] = kwargs["provider"]
         captured["model"] = kwargs["model"]
-        return "answer"
+        return GeneratedAnswer("answer", actual_model)
 
     monkeypatch.setattr(handler_module, "Settings", SimpleNamespace(from_env=_settings))
     monkeypatch.setattr(handler_module, "DiscordClient", lambda *_args: Discord())
@@ -538,15 +558,15 @@ def test_handler_uses_selected_openrouter_model(
                 "channel_id": "channel",
                 "channel_type": 0,
                 "prompt": "question",
-                "model": "deepseek/deepseek-v4.1-flash",
+                "model": selected_model,
             }
         )
     )
 
     assert captured == {
         "provider": "openrouter",
-        "model": "deepseek/deepseek-v4.1-flash",
-        "label": "deepseek/deepseek-v4.1-flash",
+        "model": selected_model,
+        "label": expected_label,
     }
 
 
@@ -569,7 +589,7 @@ def test_openai_provider_uses_responses_api(monkeypatch: pytest.MonkeyPatch) -> 
         prompt="current question",
     )
 
-    assert answer == "generated answer"
+    assert answer == GeneratedAnswer("generated answer")
     assert captured["model"] == "openai-model"
     assert captured["instructions"] == "system prompt"
     assert captured["input"][-1] == {
@@ -634,7 +654,7 @@ def test_gemini_provider_includes_history(monkeypatch: pytest.MonkeyPatch) -> No
         prompt="current question",
     )
 
-    assert answer == "generated answer"
+    assert answer == GeneratedAnswer("generated answer")
     assert captured["model"] == "gemini-3.8-flash"
     assert "アシスタント: earlier answer" in captured["contents"]
     assert "ユーザー: current question" in captured["contents"]
@@ -671,7 +691,7 @@ def test_openrouter_provider_uses_chat_completions(
         prompt="current question",
     )
 
-    assert answer == "answer"
+    assert answer == GeneratedAnswer("answer")
     assert client_options == {
         "api_key": "openrouter-key",
         "base_url": "https://openrouter.ai/api/v1",
@@ -697,7 +717,8 @@ def test_openrouter_provider_passes_selected_model(
         def create(self, **kwargs):
             request.update(kwargs)
             return SimpleNamespace(
-                choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))]
+                choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))],
+                model="deepseek/deepseek-v4.1-flash",
             )
 
     class Client:
@@ -705,7 +726,7 @@ def test_openrouter_provider_passes_selected_model(
 
     monkeypatch.setattr(ai_module, "OpenAI", lambda **_kwargs: Client())
 
-    AiService(_settings(), _model_config()).generate(
+    answer = AiService(_settings(), _model_config()).generate(
         provider="openrouter",
         history=[],
         prompt="question",
@@ -713,6 +734,7 @@ def test_openrouter_provider_passes_selected_model(
     )
 
     assert request["model"] == "typesafe/jev-router"
+    assert answer == GeneratedAnswer("answer", "deepseek/deepseek-v4.1-flash")
 
 
 def test_openrouter_provider_requires_key() -> None:

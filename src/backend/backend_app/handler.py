@@ -48,13 +48,15 @@ def handle_chat(cloud_event) -> None:
             "gemini": model_config.gemini_model,
             "openrouter": job.model or model_config.openrouter_model,
         }[provider]
-        answer = AiService(settings, model_config).generate(
+        result = AiService(settings, model_config).generate(
             provider=provider,
             history=history,
             prompt=job.prompt,
             model=job.model,
         )
-        discord.complete_interaction(job, answer, model_name)
+        if provider == "openrouter" and result.model and result.model != model_name:
+            model_name = f"{model_name} → {result.model}"
+        discord.complete_interaction(job, result.text, model_name)
     except Exception as exc:
         logger.error("Chat processing failed (error_type=%s)", type(exc).__name__)
         if job is not None and discord is not None:

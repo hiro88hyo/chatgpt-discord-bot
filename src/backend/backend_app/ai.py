@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from google import genai
@@ -13,6 +14,12 @@ from backend_app.model_config import ModelConfig
 from backend_app.models import ConversationMessage
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+@dataclass(frozen=True, slots=True)
+class GeneratedAnswer:
+    text: str
+    model: str | None = None
 
 
 class AiService:
@@ -27,11 +34,11 @@ class AiService:
         history: list[ConversationMessage],
         prompt: str,
         model: str | None = None,
-    ) -> str:
+    ) -> GeneratedAnswer:
         if provider == "openai":
-            return self._generate_openai(history, prompt)
+            return GeneratedAnswer(self._generate_openai(history, prompt))
         if provider == "gemini":
-            return self._generate_gemini(history, prompt)
+            return GeneratedAnswer(self._generate_gemini(history, prompt))
         if provider == "openrouter":
             return self._generate_openrouter(
                 history, prompt, model or self._model_config.openrouter_model
@@ -89,7 +96,7 @@ class AiService:
 
     def _generate_openrouter(
         self, history: list[ConversationMessage], prompt: str, model: str
-    ) -> str:
+    ) -> GeneratedAnswer:
         if not self._settings.openrouter_api_key:
             raise ConfigurationError(
                 "OPENROUTER_API_KEY is required for the OpenRouter provider"
@@ -111,4 +118,7 @@ class AiService:
         content = response.choices[0].message.content if response.choices else None
         if not isinstance(content, str) or not content.strip():
             raise RuntimeError("OpenRouter returned an empty response")
-        return content.strip()
+        actual_model = getattr(response, "model", None)
+        if not isinstance(actual_model, str) or not actual_model.strip():
+            actual_model = None
+        return GeneratedAnswer(content.strip(), actual_model)
