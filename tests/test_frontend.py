@@ -127,14 +127,14 @@ def test_parse_chat_request_model_selects_openrouter() -> None:
                 "name": "chat",
                 "options": [
                     {"name": "prompt", "value": "hello"},
-                    {"name": "model", "value": "anthropic/claude-sonnet-5"},
+                    {"name": "model", "value": "anthropic/claude-opus-5.5"},
                 ],
             },
         }
     )
 
     assert request.provider == "openrouter"
-    assert request.model == "anthropic/claude-sonnet-5"
+    assert request.model == "anthropic/claude-opus-5.5"
     assert request.to_dict()["model"] == request.model
 
 
@@ -142,8 +142,9 @@ def test_parse_chat_request_model_selects_openrouter() -> None:
     ("provider", "model", "message"),
     [
         (None, "unlisted/model", "モデル"),
+        (None, "openrouter/auto", "モデル"),
         (None, 42, "モデル"),
-        ("openai", "openrouter/auto", "OpenRouter"),
+        ("openai", "openai/gpt-6-astra", "OpenRouter"),
     ],
 )
 def test_parse_chat_request_rejects_invalid_model(
@@ -193,7 +194,7 @@ def test_publisher_waits_for_pubsub_acknowledgement() -> None:
     )
     client = Publisher()
     request = ChatRequest(
-        "app", "token", "channel", 0, "hello", "openrouter", "openrouter/auto"
+        "app", "token", "channel", 0, "hello", "openrouter", "openai/gpt-6-astra"
     )
 
     message_id = ChatPublisher(settings, client).publish(request)  # type: ignore[arg-type]
@@ -201,6 +202,6 @@ def test_publisher_waits_for_pubsub_acknowledgement() -> None:
     assert message_id == "message-id"
     assert client.future.timeout == 2.0
     assert client.published is not None
-    assert json.loads(client.published[1])["model"] == "openrouter/auto"
+    assert json.loads(client.published[1])["model"] == "openai/gpt-6-astra"
     assert client.published[0] == "projects/project/topics/topic"
     assert b'"prompt":"hello"' in client.published[1]

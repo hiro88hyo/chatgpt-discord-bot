@@ -7,11 +7,11 @@ import os
 import requests
 
 OPENROUTER_MODEL_CHOICES = (
-    ("Auto（自動選択）", "openrouter/auto"),
-    ("Claude Sonnet 5", "anthropic/claude-sonnet-5"),
-    ("GPT-5.6 Terra", "openai/gpt-5.6-terra"),
     ("Gemini 3.8 Flash", "google/gemini-3.8-flash"),
+    ("Claude Opus 5.5", "anthropic/claude-opus-5.5"),
+    ("GPT-6 Astra", "openai/gpt-6-astra"),
     ("DeepSeek V4.1 Flash", "deepseek/deepseek-v4.1-flash"),
+    ("Claude Fable 5.1", "anthropic/claude-fable-5.1"),
 )
 
 
