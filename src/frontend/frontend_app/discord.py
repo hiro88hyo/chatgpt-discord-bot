@@ -13,6 +13,15 @@ PING = 1
 APPLICATION_COMMAND = 2
 CHAT_COMMAND = "chat"
 SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
+OPENROUTER_MODEL_IDS = frozenset(
+    {
+        "openrouter/auto",
+        "anthropic/claude-sonnet-5",
+        "openai/gpt-5.6-terra",
+        "google/gemini-3.8-flash",
+        "deepseek/deepseek-v4.1-flash",
+    }
+)
 
 
 class InteractionError(ValueError):
@@ -27,6 +36,7 @@ class ChatRequest:
     channel_type: int
     prompt: str
     provider: str | None
+    model: str | None = None
 
     def to_dict(self) -> dict[str, str | int | None]:
         return {
@@ -36,6 +46,7 @@ class ChatRequest:
             "channel_type": self.channel_type,
             "prompt": self.prompt,
             "provider": self.provider,
+            "model": self.model,
         }
 
 
@@ -85,6 +96,14 @@ def parse_chat_request(body: Mapping[str, Any]) -> ChatRequest:
     provider = str(raw_provider).lower() if raw_provider is not None else None
     if provider is not None and provider not in SUPPORTED_PROVIDERS:
         raise InteractionError("指定された AI プロバイダーには対応していません。")
+    raw_model = options.get("model")
+    model = raw_model if isinstance(raw_model, str) else None
+    if raw_model is not None and model not in OPENROUTER_MODEL_IDS:
+        raise InteractionError("指定された OpenRouter モデルには対応していません。")
+    if model is not None:
+        if provider not in (None, "openrouter"):
+            raise InteractionError("モデルを選ぶ場合は OpenRouter を使用してください。")
+        provider = "openrouter"
 
     try:
         channel_type = int(channel["type"])
@@ -98,4 +117,5 @@ def parse_chat_request(body: Mapping[str, Any]) -> ChatRequest:
         channel_type=channel_type,
         prompt=prompt,
         provider=provider,
+        model=model,
     )

@@ -10,6 +10,15 @@ from typing import Any
 
 THREAD_CHANNEL_TYPES = {10, 11, 12}
 SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
+OPENROUTER_MODEL_IDS = frozenset(
+    {
+        "openrouter/auto",
+        "anthropic/claude-sonnet-5",
+        "openai/gpt-5.6-terra",
+        "google/gemini-3.8-flash",
+        "deepseek/deepseek-v4.1-flash",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +35,7 @@ class ChatJob:
     channel_type: int
     prompt: str
     provider: str | None
+    model: str | None = None
 
     @property
     def is_thread(self) -> bool:
@@ -48,6 +58,14 @@ class ChatJob:
         provider = str(raw_provider).lower() if raw_provider is not None else None
         if provider is not None and provider not in SUPPORTED_PROVIDERS:
             raise ValueError(f"Unsupported AI provider: {provider}")
+        raw_model = payload.get("model")
+        model = raw_model if isinstance(raw_model, str) else None
+        if raw_model is not None and model not in OPENROUTER_MODEL_IDS:
+            raise ValueError("Unsupported OpenRouter model")
+        if model is not None:
+            if provider not in (None, "openrouter"):
+                raise ValueError("OpenRouter model requires the OpenRouter provider")
+            provider = "openrouter"
 
         return cls(
             application_id=str(payload["application_id"]),
@@ -56,6 +74,7 @@ class ChatJob:
             channel_type=int(payload["channel_type"]),
             prompt=str(payload["prompt"]),
             provider=provider,
+            model=model,
         )
 
 

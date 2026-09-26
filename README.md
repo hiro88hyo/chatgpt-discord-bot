@@ -76,7 +76,11 @@ python scripts/register_discord_commands.py
 ```
 
 このスクリプトは `PUT` でグローバルコマンド一覧を同期します。反映には時間がかかる場合があります。
-OpenRouter を選択肢に追加するには、変更後にこのスクリプトを再実行してください。
+`/chat` の `model` では Auto、Claude Sonnet 5、GPT-5.6 Terra、Gemini 3.8 Flash、
+DeepSeek V4.1 Flash から選べます。`model` を選ぶと `provider` を省略しても OpenRouter
+を使います。`model` を省略した場合は、従来どおりプロバイダーの既定モデルを使います。
+`provider` に OpenAI または Gemini を選ぶ場合、`model` は指定できません。
+候補を変更したときは、Function のデプロイ後にこのスクリプトを再実行してください。
 
 ## Google Cloud へのデプロイ
 
@@ -104,6 +108,7 @@ Functionの再デプロイは不要です。GitHub Actionsの `Update model conf
 `OPENROUTER_MODEL` を使用します。
 OpenRouter の既定値 `openrouter/auto` はプロンプトに応じて利用モデルを選びます。
 固定したい場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
+スラッシュコマンドの `model` を選んだリクエストでは、そのモデルIDが既定設定より優先されます。
 
 設定取得に失敗した場合は、直近に取得できた設定を使います。起動後に一度も取得
 できていない場合だけ、環境変数の既定値へフォールバックします。
