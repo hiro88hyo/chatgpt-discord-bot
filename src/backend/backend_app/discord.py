@@ -15,6 +15,10 @@ ANSWER_LIMIT = 4_000
 TRUNCATION_MARKER = "\n\n…（長文のため省略しました）"
 
 
+class DiscordRequestError(RuntimeError):
+    """A Discord request error that does not expose the interaction URL."""
+
+
 def truncate(text: str, limit: int) -> str:
     if len(text) <= limit:
         return text
@@ -133,26 +137,36 @@ class DiscordClient:
         return extract_conversation(payload)
 
     def complete_interaction(self, job: ChatJob, answer: str, model_name: str) -> None:
-        response = self._session.patch(
-            self._interaction_url(job),
-            json=build_response_payload(job.prompt, answer, model_name),
-            timeout=self._timeout,
+        self._patch_interaction(
+            job, build_response_payload(job.prompt, answer, model_name)
         )
-        response.raise_for_status()
 
     def fail_interaction(self, job: ChatJob) -> None:
-        response = self._session.patch(
-            self._interaction_url(job),
-            json={
+        self._patch_interaction(
+            job,
+            {
                 "content": (
                     "回答の生成中にエラーが発生しました。"
                     "しばらくしてから再試行してください。"
                 ),
                 "allowed_mentions": {"parse": []},
             },
-            timeout=self._timeout,
         )
-        response.raise_for_status()
+
+    def _patch_interaction(self, job: ChatJob, payload: dict[str, Any]) -> None:
+        try:
+            response = self._session.patch(
+                self._interaction_url(job),
+                json=payload,
+                timeout=self._timeout,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            detail = f" (HTTP {status})" if isinstance(status, int) else ""
+            raise DiscordRequestError(
+                f"Discord interaction request failed{detail}"
+            ) from None
 
     @staticmethod
     def _interaction_url(job: ChatJob) -> str:

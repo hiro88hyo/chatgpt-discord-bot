@@ -33,8 +33,8 @@ variable "default_ai_provider" {
   default     = "openai"
 
   validation {
-    condition     = contains(["openai", "gemini"], var.default_ai_provider)
-    error_message = "default_ai_provider must be openai or gemini."
+    condition     = contains(["openai", "gemini", "openrouter"], var.default_ai_provider)
+    error_message = "default_ai_provider must be openai, gemini, or openrouter."
   }
 }
 
@@ -48,6 +48,12 @@ variable "gemini_model" {
   description = "Gemini model ID."
   type        = string
   default     = "gemini-3.8-flash"
+}
+
+variable "openrouter_model" {
+  description = "OpenRouter model ID passed to the Chat Completions API."
+  type        = string
+  default     = "openrouter/auto"
 }
 
 variable "history_message_limit" {

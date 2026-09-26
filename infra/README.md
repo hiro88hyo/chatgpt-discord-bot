@@ -54,10 +54,13 @@ gcloud secrets versions add discord-public-key --data-file=/secure/path/discord-
 gcloud secrets versions add discord-bot-token --data-file=/secure/path/discord-bot-token
 gcloud secrets versions add openai-api-key --data-file=/secure/path/openai-api-key
 gcloud secrets versions add gemini-api-key --data-file=/secure/path/gemini-api-key
+gcloud secrets versions add openrouter-api-key --data-file=/secure/path/openrouter-api-key
 ```
 
-All four secrets need at least one enabled version before the first deployment. Avoid putting
+All five secrets need at least one enabled version before the first deployment. Avoid putting
 real values in shell history; using a password manager or redirected secure file is preferable.
+For an existing deployment, apply the bootstrap change and add the OpenRouter key version
+before deploying the updated backend function.
 
 Bootstrap also creates the `discord-bot-model-config` JSON parameter. Its versions are managed
 outside Terraform so normal model changes never trigger a Function deployment and never alter
@@ -79,7 +82,7 @@ No service-account JSON key or application secret is stored in GitHub.
 
 ## 5. Set the model configuration
 
-Run the `Update model configuration` workflow from the `main` branch. Enter all three values;
+Run the `Update model configuration` workflow from the `main` branch. Enter all four values;
 each run creates an auditable Parameter Manager version. Warm backend instances refresh the
 latest valid version within 60 seconds. To roll back, run the workflow again with the previous
 values.

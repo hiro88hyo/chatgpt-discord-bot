@@ -114,6 +114,7 @@ resource "google_cloudfunctions2_function" "backend" {
       DEFAULT_AI_PROVIDER      = var.default_ai_provider
       OPENAI_MODEL             = var.openai_model
       GEMINI_MODEL             = var.gemini_model
+      OPENROUTER_MODEL         = var.openrouter_model
       MODEL_CONFIG_PARAMETER   = "discord-bot-model-config"
       MODEL_CONFIG_TTL_SECONDS = "60"
       HISTORY_MESSAGE_LIMIT    = tostring(var.history_message_limit)
@@ -137,6 +138,13 @@ resource "google_cloudfunctions2_function" "backend" {
       key        = "GEMINI_API_KEY"
       project_id = var.project_id
       secret     = "gemini-api-key"
+      version    = "latest"
+    }
+
+    secret_environment_variables {
+      key        = "OPENROUTER_API_KEY"
+      project_id = var.project_id
+      secret     = "openrouter-api-key"
       version    = "latest"
     }
   }

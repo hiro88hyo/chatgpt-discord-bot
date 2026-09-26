@@ -11,6 +11,7 @@ on:
         options:
           - openai
           - gemini
+          - openrouter
       openai_model:
         description: OpenAI model ID
         required: true
@@ -21,6 +22,11 @@ on:
         required: true
         type: string
         default: gemini-3.8-flash
+      openrouter_model:
+        description: OpenRouter model ID
+        required: true
+        type: string
+        default: openrouter/auto
 
 permissions:
   contents: read
@@ -38,6 +44,7 @@ jobs:
       DEFAULT_PROVIDER: ${{ inputs.default_provider }}
       OPENAI_MODEL: ${{ inputs.openai_model }}
       GEMINI_MODEL: ${{ inputs.gemini_model }}
+      OPENROUTER_MODEL: ${{ inputs.openrouter_model }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -55,8 +62,9 @@ jobs:
       - name: Add model configuration version
         shell: bash
         run: |
-          if [[ -z "$OPENAI_MODEL" || -z "$GEMINI_MODEL" \
-            || ${#OPENAI_MODEL} -gt 200 || ${#GEMINI_MODEL} -gt 200 ]]; then
+          if [[ -z "$OPENAI_MODEL" || -z "$GEMINI_MODEL" || -z "$OPENROUTER_MODEL" \
+            || ${#OPENAI_MODEL} -gt 200 || ${#GEMINI_MODEL} -gt 200 \
+            || ${#OPENROUTER_MODEL} -gt 200 ]]; then
             echo "Model IDs must contain between 1 and 200 characters." >&2
             exit 1
           fi
@@ -65,10 +73,12 @@ jobs:
             --arg default_provider "$DEFAULT_PROVIDER" \
             --arg openai_model "$OPENAI_MODEL" \
             --arg gemini_model "$GEMINI_MODEL" \
+            --arg openrouter_model "$OPENROUTER_MODEL" \
             '{
               default_provider: $default_provider,
               openai_model: $openai_model,
-              gemini_model: $gemini_model
+              gemini_model: $gemini_model,
+              openrouter_model: $openrouter_model
             }')"
           version_id="model-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
@@ -84,4 +94,5 @@ jobs:
             echo "- Default provider: \`$DEFAULT_PROVIDER\`"
             echo "- OpenAI: \`$OPENAI_MODEL\`"
             echo "- Gemini: \`$GEMINI_MODEL\`"
+            echo "- OpenRouter: \`$OPENROUTER_MODEL\`"
           } >> "$GITHUB_STEP_SUMMARY"

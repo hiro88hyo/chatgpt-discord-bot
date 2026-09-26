@@ -33,7 +33,7 @@ def main(request: Request):
     try:
         settings = Settings.from_env()
     except ConfigurationError:
-        logger.exception("Frontend configuration is invalid")
+        logger.error("Frontend configuration is invalid")
         return jsonify({"error": "service is not configured"}), 500
 
     raw_body = request.get_data(cache=True)
@@ -57,8 +57,11 @@ def main(request: Request):
         ChatPublisher(settings).publish(chat_request)
     except InteractionError as exc:
         return _message(str(exc))
-    except Exception:
-        logger.exception("Failed to enqueue Discord interaction")
+    except Exception as exc:
+        logger.error(
+            "Failed to enqueue Discord interaction (error_type=%s)",
+            type(exc).__name__,
+        )
         return _message(
             "現在リクエストを受け付けられません。少し待ってから再試行してください。"
         )

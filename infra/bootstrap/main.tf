@@ -109,6 +109,17 @@ resource "google_secret_manager_secret" "gemini_api_key" {
   depends_on = [google_project_service.required]
 }
 
+resource "google_secret_manager_secret" "openrouter_api_key" {
+  project   = var.project_id
+  secret_id = "openrouter-api-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required]
+}
+
 resource "google_parameter_manager_parameter" "model_config" {
   project         = var.project_id
   parameter_id    = "discord-bot-model-config"
@@ -189,9 +200,10 @@ resource "google_secret_manager_secret_iam_member" "frontend_public_key" {
 
 resource "google_secret_manager_secret_iam_member" "backend_secrets" {
   for_each = {
-    discord_bot_token = google_secret_manager_secret.discord_bot_token.secret_id
-    openai_api_key    = google_secret_manager_secret.openai_api_key.secret_id
-    gemini_api_key    = google_secret_manager_secret.gemini_api_key.secret_id
+    discord_bot_token  = google_secret_manager_secret.discord_bot_token.secret_id
+    openai_api_key     = google_secret_manager_secret.openai_api_key.secret_id
+    gemini_api_key     = google_secret_manager_secret.gemini_api_key.secret_id
+    openrouter_api_key = google_secret_manager_secret.openrouter_api_key.secret_id
   }
 
   project   = var.project_id

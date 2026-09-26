@@ -12,7 +12,7 @@ from nacl.signing import VerifyKey
 PING = 1
 APPLICATION_COMMAND = 2
 CHAT_COMMAND = "chat"
-SUPPORTED_PROVIDERS = {"openai", "gemini"}
+SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
 
 
 class InteractionError(ValueError):

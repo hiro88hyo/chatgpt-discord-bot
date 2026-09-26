@@ -10,6 +10,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "あなたは優秀なアシスタントです。"
     "ユーザーからの質問に対し700から800文字程度で簡潔に回答します。"
 )
+DEFAULT_OPENROUTER_MODEL = "openrouter/auto"
 
 
 class ConfigurationError(RuntimeError):
@@ -46,10 +47,12 @@ class Settings:
     discord_bot_token: str
     openai_api_key: str | None
     gemini_api_key: str | None
+    openrouter_api_key: str | None
     project_id: str
     fallback_default_provider: str
     fallback_openai_model: str
     fallback_gemini_model: str
+    fallback_openrouter_model: str
     model_config_parameter: str
     model_config_ttl_seconds: int
     system_prompt: str
@@ -59,17 +62,23 @@ class Settings:
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ) -> Settings:
         default_provider = env.get("DEFAULT_AI_PROVIDER", "openai").strip().lower()
-        if default_provider not in {"openai", "gemini"}:
-            raise ConfigurationError("DEFAULT_AI_PROVIDER must be openai or gemini")
+        if default_provider not in {"openai", "gemini", "openrouter"}:
+            raise ConfigurationError(
+                "DEFAULT_AI_PROVIDER must be openai, gemini, or openrouter"
+            )
 
         return cls(
             discord_bot_token=_required(env, "DISCORD_BOT_TOKEN"),
             openai_api_key=env.get("OPENAI_API_KEY") or None,
             gemini_api_key=env.get("GEMINI_API_KEY") or None,
+            openrouter_api_key=env.get("OPENROUTER_API_KEY") or None,
             project_id=_required(env, "GCP_PROJECT_ID"),
             fallback_default_provider=default_provider,
             fallback_openai_model=_configured(env, "OPENAI_MODEL", "gpt-5.6-terra"),
             fallback_gemini_model=_configured(env, "GEMINI_MODEL", "gemini-3.8-flash"),
+            fallback_openrouter_model=_configured(
+                env, "OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL
+            ),
             model_config_parameter=_configured(
                 env, "MODEL_CONFIG_PARAMETER", "discord-bot-model-config"
             ),

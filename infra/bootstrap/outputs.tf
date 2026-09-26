@@ -16,5 +16,6 @@ output "secret_names" {
     discord_bot_token  = google_secret_manager_secret.discord_bot_token.secret_id
     openai_api_key     = google_secret_manager_secret.openai_api_key.secret_id
     gemini_api_key     = google_secret_manager_secret.gemini_api_key.secret_id
+    openrouter_api_key = google_secret_manager_secret.openrouter_api_key.secret_id
   }
 }

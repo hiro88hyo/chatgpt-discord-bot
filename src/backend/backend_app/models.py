@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 THREAD_CHANNEL_TYPES = {10, 11, 12}
-SUPPORTED_PROVIDERS = {"openai", "gemini"}
+SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
+import traceback
 from types import SimpleNamespace
 
 import pytest
+import requests
 from backend_app import ai as ai_module
+from backend_app import handler as handler_module
 from backend_app.ai import AiService
 from backend_app.config import DEFAULT_SYSTEM_PROMPT, ConfigurationError, Settings
 from backend_app.discord import (
     ANSWER_LIMIT,
     DiscordClient,
+    DiscordRequestError,
     build_response_payload,
     extract_conversation,
 )
+from backend_app.handler import ChatProcessingError
 from backend_app.model_config import ModelConfig, ModelConfigProvider
 from backend_app.models import ChatJob, ConversationMessage, decode_pubsub_event
 
@@ -33,10 +39,12 @@ def _settings() -> Settings:
         discord_bot_token="discord-token",
         openai_api_key="openai-key",
         gemini_api_key="gemini-key",
+        openrouter_api_key="openrouter-key",
         project_id="project",
         fallback_default_provider="openai",
         fallback_openai_model="fallback-openai-model",
         fallback_gemini_model="fallback-gemini-model",
+        fallback_openrouter_model="fallback-openrouter-model",
         model_config_parameter="discord-bot-model-config",
         model_config_ttl_seconds=60,
         system_prompt="system prompt",
@@ -49,6 +57,7 @@ def _model_config() -> ModelConfig:
         default_provider="openai",
         openai_model="openai-model",
         gemini_model="gemini-model",
+        openrouter_model="openrouter-model",
     )
 
 
@@ -64,6 +73,7 @@ def test_backend_settings_load_model_fallbacks() -> None:
 
     assert settings.fallback_default_provider == "gemini"
     assert settings.fallback_openai_model == "openai-fallback"
+    assert settings.fallback_openrouter_model == "openrouter/auto"
     assert settings.model_config_ttl_seconds == 60
     assert settings.system_prompt == DEFAULT_SYSTEM_PROMPT
     assert settings.system_prompt == (
@@ -82,6 +92,23 @@ def test_backend_settings_use_current_default_models() -> None:
 
     assert settings.fallback_openai_model == "gpt-5.6-terra"
     assert settings.fallback_gemini_model == "gemini-3.8-flash"
+    assert settings.fallback_openrouter_model == "openrouter/auto"
+
+
+def test_backend_settings_accept_openrouter_configuration() -> None:
+    settings = Settings.from_env(
+        {
+            "DISCORD_BOT_TOKEN": "token",
+            "GCP_PROJECT_ID": "project",
+            "DEFAULT_AI_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "router-key",
+            "OPENROUTER_MODEL": "anthropic/example-model",
+        }
+    )
+
+    assert settings.fallback_default_provider == "openrouter"
+    assert settings.openrouter_api_key == "router-key"
+    assert settings.fallback_openrouter_model == "anthropic/example-model"
 
 
 def test_backend_settings_reject_empty_fallback_model() -> None:
@@ -104,6 +131,33 @@ def test_model_config_rejects_invalid_provider() -> None:
                 "gemini_model": "gemini-model",
             }
         )
+
+
+def test_model_config_uses_fallback_for_older_parameter_payload() -> None:
+    config = ModelConfig.from_mapping(
+        {
+            "default_provider": "openai",
+            "openai_model": "openai-model",
+            "gemini_model": "gemini-model",
+        },
+        fallback_openrouter_model="fallback-router-model",
+    )
+
+    assert config.openrouter_model == "fallback-router-model"
+
+
+def test_model_config_accepts_openrouter_and_rejects_empty_model() -> None:
+    payload = {
+        "default_provider": "openrouter",
+        "openai_model": "openai-model",
+        "gemini_model": "gemini-model",
+        "openrouter_model": "anthropic/example-model",
+    }
+
+    config = ModelConfig.from_mapping(payload)
+    assert config.openrouter_model == "anthropic/example-model"
+    with pytest.raises(ValueError, match="openrouter_model"):
+        ModelConfig.from_mapping({**payload, "openrouter_model": " "})
 
 
 def test_decode_pubsub_event() -> None:
@@ -154,6 +208,23 @@ def test_decode_pubsub_event_allows_backend_default_provider() -> None:
     )
 
     assert job.provider is None
+
+
+def test_decode_pubsub_event_accepts_openrouter() -> None:
+    job = decode_pubsub_event(
+        _event(
+            {
+                "application_id": "app",
+                "interaction_token": "token",
+                "channel_id": "channel",
+                "channel_type": 0,
+                "prompt": "hello",
+                "provider": "openrouter",
+            }
+        )
+    )
+
+    assert job.provider == "openrouter"
 
 
 def test_payload_obeys_answer_limit_and_disables_mentions() -> None:
@@ -256,6 +327,139 @@ def test_discord_client_only_authenticates_bot_api_requests() -> None:
     }
 
 
+@pytest.mark.parametrize("operation", ["complete", "fail"])
+@pytest.mark.parametrize("failure_mode", ["http", "connection"])
+def test_discord_interaction_errors_hide_sensitive_data(
+    operation: str, failure_mode: str
+) -> None:
+    class Session:
+        def patch(self, url: str, **kwargs) -> requests.Response:
+            if failure_mode == "connection":
+                raise requests.ConnectionError(f"{url} {kwargs['json']}")
+            response = requests.Response()
+            response.status_code = 500
+            response.url = url
+            return response
+
+    job = ChatJob(
+        "app", "private-interaction-token", "channel", 0, "private prompt", "openai"
+    )
+    answer = "private answer"
+    client = DiscordClient("bot-token", 30, Session())  # type: ignore[arg-type]
+
+    with pytest.raises(DiscordRequestError) as caught:
+        if operation == "complete":
+            client.complete_interaction(job, answer, "openai-model")
+        else:
+            client.fail_interaction(job)
+
+    formatted = "".join(traceback.format_exception(caught.value))
+    assert "private-interaction-token" not in formatted
+    assert "private prompt" not in formatted
+    assert "private answer" not in formatted
+    assert "Discord interaction request failed" in formatted
+    if failure_mode == "http":
+        assert "HTTP 500" in formatted
+
+
+def test_handler_logs_and_raises_only_safe_error_details(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class Discord:
+        failure_notifications = 0
+
+        def complete_interaction(self, job: ChatJob, answer: str, _model: str) -> None:
+            raise RuntimeError(f"{job.interaction_token} {job.prompt} {answer}")
+
+        def fail_interaction(self, job: ChatJob) -> None:
+            self.failure_notifications += 1
+            raise RuntimeError(f"{job.interaction_token} {job.prompt}")
+
+    discord = Discord()
+    monkeypatch.setattr(handler_module, "Settings", SimpleNamespace(from_env=_settings))
+    monkeypatch.setattr(handler_module, "DiscordClient", lambda *_args: discord)
+    monkeypatch.setattr(
+        handler_module, "_get_model_config", lambda _settings: _model_config()
+    )
+    monkeypatch.setattr(
+        handler_module,
+        "AiService",
+        lambda *_args: SimpleNamespace(generate=lambda **_kwargs: "private answer"),
+    )
+
+    with (
+        caplog.at_level(logging.ERROR, logger=handler_module.__name__),
+        pytest.raises(ChatProcessingError) as caught,
+    ):
+        handler_module.handle_chat(
+            _event(
+                {
+                    "application_id": "app",
+                    "interaction_token": "private-interaction-token",
+                    "channel_id": "channel",
+                    "channel_type": 0,
+                    "prompt": "private prompt",
+                    "provider": "openai",
+                }
+            )
+        )
+
+    visible = caplog.text + "".join(traceback.format_exception(caught.value))
+    assert "private-interaction-token" not in visible
+    assert "private prompt" not in visible
+    assert "private answer" not in visible
+    assert "RuntimeError" in caplog.text
+    assert discord.failure_notifications == 1
+
+
+def test_handler_uses_openrouter_default_and_model_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = {}
+
+    class Discord:
+        def complete_interaction(
+            self, _job: ChatJob, answer: str, model_name: str
+        ) -> None:
+            captured["answer"] = answer
+            captured["model_name"] = model_name
+
+    def generate(**kwargs) -> str:
+        captured["provider"] = kwargs["provider"]
+        return "answer"
+
+    config = ModelConfig(
+        default_provider="openrouter",
+        openai_model="openai-model",
+        gemini_model="gemini-model",
+        openrouter_model="openrouter-model",
+    )
+    monkeypatch.setattr(handler_module, "Settings", SimpleNamespace(from_env=_settings))
+    monkeypatch.setattr(handler_module, "DiscordClient", lambda *_args: Discord())
+    monkeypatch.setattr(handler_module, "_get_model_config", lambda _settings: config)
+    monkeypatch.setattr(
+        handler_module, "AiService", lambda *_args: SimpleNamespace(generate=generate)
+    )
+
+    handler_module.handle_chat(
+        _event(
+            {
+                "application_id": "app",
+                "interaction_token": "token",
+                "channel_id": "channel",
+                "channel_type": 0,
+                "prompt": "question",
+            }
+        )
+    )
+
+    assert captured == {
+        "provider": "openrouter",
+        "answer": "answer",
+        "model_name": "openrouter-model",
+    }
+
+
 def test_openai_provider_uses_responses_api(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
@@ -346,6 +550,63 @@ def test_gemini_provider_includes_history(monkeypatch: pytest.MonkeyPatch) -> No
     assert "ユーザー: current question" in captured["contents"]
 
 
+def test_openrouter_provider_uses_chat_completions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client_options = {}
+    request = {}
+
+    class Completions:
+        def create(self, **kwargs):
+            request.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content=" answer "))]
+            )
+
+    class Client:
+        chat = SimpleNamespace(completions=Completions())
+
+    def client_factory(**kwargs):
+        client_options.update(kwargs)
+        return Client()
+
+    monkeypatch.setattr(ai_module, "OpenAI", client_factory)
+
+    answer = AiService(_settings(), _model_config()).generate(
+        provider="openrouter",
+        history=[
+            ConversationMessage("user", "earlier question"),
+            ConversationMessage("assistant", "earlier answer"),
+        ],
+        prompt="current question",
+    )
+
+    assert answer == "answer"
+    assert client_options == {
+        "api_key": "openrouter-key",
+        "base_url": "https://openrouter.ai/api/v1",
+        "timeout": 30.0,
+    }
+    assert request == {
+        "model": "openrouter-model",
+        "messages": [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "earlier question"},
+            {"role": "assistant", "content": "earlier answer"},
+            {"role": "user", "content": "current question"},
+        ],
+    }
+
+
+def test_openrouter_provider_requires_key() -> None:
+    settings = Settings.from_env({"DISCORD_BOT_TOKEN": "token", "GCP_PROJECT_ID": "p"})
+
+    with pytest.raises(ConfigurationError, match="OPENROUTER_API_KEY"):
+        AiService(settings, _model_config()).generate(
+            provider="openrouter", history=[], prompt="question"
+        )
+
+
 def test_model_config_provider_caches_latest_version() -> None:
     class Clock:
         now = 100.0
@@ -386,6 +647,7 @@ def test_model_config_provider_caches_latest_version() -> None:
 
     assert first == second == third
     assert first.default_provider == "gemini"
+    assert first.openrouter_model == "fallback-openrouter-model"
     assert client.calls == 2
 
 
@@ -441,3 +703,4 @@ def test_model_config_provider_falls_back_on_first_error() -> None:
 
     assert config.default_provider == "openai"
     assert config.openai_model == "fallback-openai-model"
+    assert config.openrouter_model == "fallback-openrouter-model"
