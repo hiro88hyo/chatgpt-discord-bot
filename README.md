@@ -70,6 +70,8 @@ functions-framework --source src/frontend/main.py --target main --port 8080
 ## Discord コマンド登録
 
 `DISCORD_APPLICATION_ID` と `DISCORD_BOT_TOKEN` を環境変数に設定して実行します。
+サーバー専用コマンドも使う場合は `DISCORD_GUILD_ID` を設定すると、
+グローバルコマンドと同じ内容へ更新できます。
 
 ```bash
 python scripts/register_discord_commands.py
@@ -77,7 +79,7 @@ python scripts/register_discord_commands.py
 
 このスクリプトは `PUT` でグローバルコマンド一覧を同期します。反映には時間がかかる場合があります。
 `/chat` の `model` では Gemini 3.8 Flash、Claude Opus 5.5、GPT-6 Astra、
-DeepSeek V4.1 Flash、Claude Fable 5.1 から選べます。`model` を選ぶと
+DeepSeek V4.1 Flash、Claude Fable 5.1、Jev Router から選べます。`model` を選ぶと
 `provider` を省略しても OpenRouter を使います。`model` を省略した場合は、
 従来どおりプロバイダーの既定モデルを使います。
 `provider` に OpenAI または Gemini を選ぶ場合、`model` は指定できません。

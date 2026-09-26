@@ -17,6 +17,7 @@ OPENROUTER_MODEL_IDS = frozenset(
         "openai/gpt-6-astra",
         "deepseek/deepseek-v4.1-flash",
         "anthropic/claude-fable-5.1",
+        "typesafe/jev-router",
     }
 )
 

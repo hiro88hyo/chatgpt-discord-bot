@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import pytest
 from backend_app.models import OPENROUTER_MODEL_IDS as BACKEND_MODEL_IDS
 from frontend_app.discord import OPENROUTER_MODEL_IDS as FRONTEND_MODEL_IDS
 
 from scripts import register_discord_commands
 
 
-def test_register_chat_model_choices_match_runtime_validation(monkeypatch) -> None:
+@pytest.mark.parametrize("guild_id", [None, "guild"])
+def test_register_chat_model_choices_match_runtime_validation(
+    monkeypatch: pytest.MonkeyPatch, guild_id: str | None
+) -> None:
     captured = {}
 
     class Response:
@@ -16,11 +20,22 @@ def test_register_chat_model_choices_match_runtime_validation(monkeypatch) -> No
     def put(url, **kwargs) -> Response:
         captured["url"] = url
         captured["options"] = kwargs["json"][0]["options"]
+        captured["command"] = kwargs["json"][0]
+        return Response()
+
+    def post(url, **kwargs) -> Response:
+        captured["guild_url"] = url
+        captured["guild_command"] = kwargs["json"]
         return Response()
 
     monkeypatch.setenv("DISCORD_APPLICATION_ID", "app")
     monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    if guild_id is None:
+        monkeypatch.delenv("DISCORD_GUILD_ID", raising=False)
+    else:
+        monkeypatch.setenv("DISCORD_GUILD_ID", guild_id)
     monkeypatch.setattr(register_discord_commands.requests, "put", put)
+    monkeypatch.setattr(register_discord_commands.requests, "post", post)
 
     register_discord_commands.main()
 
@@ -33,7 +48,13 @@ def test_register_chat_model_choices_match_runtime_validation(monkeypatch) -> No
         "openai/gpt-6-astra",
         "deepseek/deepseek-v4.1-flash",
         "anthropic/claude-fable-5.1",
+        "typesafe/jev-router",
     ]
     assert set(model_ids) == FRONTEND_MODEL_IDS == BACKEND_MODEL_IDS
     assert len(model_ids) <= 25
     assert options["model"]["required"] is False
+    if guild_id is None:
+        assert "guild_url" not in captured
+    else:
+        assert captured["guild_url"].endswith("/guilds/guild/commands")
+        assert captured["guild_command"] == captured["command"]

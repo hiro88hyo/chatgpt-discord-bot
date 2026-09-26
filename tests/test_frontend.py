@@ -127,14 +127,14 @@ def test_parse_chat_request_model_selects_openrouter() -> None:
                 "name": "chat",
                 "options": [
                     {"name": "prompt", "value": "hello"},
-                    {"name": "model", "value": "anthropic/claude-opus-5.5"},
+                    {"name": "model", "value": "typesafe/jev-router"},
                 ],
             },
         }
     )
 
     assert request.provider == "openrouter"
-    assert request.model == "anthropic/claude-opus-5.5"
+    assert request.model == "typesafe/jev-router"
     assert request.to_dict()["model"] == request.model
 
 
