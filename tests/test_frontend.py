@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 from frontend_app.config import ConfigurationError, Settings
 from frontend_app.discord import (
@@ -115,6 +117,55 @@ def test_parse_chat_request_accepts_openrouter() -> None:
     assert request.provider == "openrouter"
 
 
+def test_parse_chat_request_model_selects_openrouter() -> None:
+    request = parse_chat_request(
+        {
+            "application_id": "app",
+            "token": "token",
+            "channel": {"id": "channel", "type": 0},
+            "data": {
+                "name": "chat",
+                "options": [
+                    {"name": "prompt", "value": "hello"},
+                    {"name": "model", "value": "anthropic/claude-sonnet-5"},
+                ],
+            },
+        }
+    )
+
+    assert request.provider == "openrouter"
+    assert request.model == "anthropic/claude-sonnet-5"
+    assert request.to_dict()["model"] == request.model
+
+
+@pytest.mark.parametrize(
+    ("provider", "model", "message"),
+    [
+        (None, "unlisted/model", "モデル"),
+        (None, 42, "モデル"),
+        ("openai", "openrouter/auto", "OpenRouter"),
+    ],
+)
+def test_parse_chat_request_rejects_invalid_model(
+    provider: str | None, model: object, message: str
+) -> None:
+    options = [
+        {"name": "prompt", "value": "hello"},
+        {"name": "model", "value": model},
+    ]
+    if provider is not None:
+        options.append({"name": "provider", "value": provider})
+    with pytest.raises(InteractionError, match=message):
+        parse_chat_request(
+            {
+                "application_id": "app",
+                "token": "token",
+                "channel": {"id": "channel", "type": 0},
+                "data": {"name": "chat", "options": options},
+            }
+        )
+
+
 def test_publisher_waits_for_pubsub_acknowledgement() -> None:
     class Future:
         timeout = None
@@ -141,12 +192,15 @@ def test_publisher_waits_for_pubsub_acknowledgement() -> None:
         discord_public_key="00" * 32,
     )
     client = Publisher()
-    request = ChatRequest("app", "token", "channel", 0, "hello", "openai")
+    request = ChatRequest(
+        "app", "token", "channel", 0, "hello", "openrouter", "openrouter/auto"
+    )
 
     message_id = ChatPublisher(settings, client).publish(request)  # type: ignore[arg-type]
 
     assert message_id == "message-id"
     assert client.future.timeout == 2.0
     assert client.published is not None
+    assert json.loads(client.published[1])["model"] == "openrouter/auto"
     assert client.published[0] == "projects/project/topics/topic"
     assert b'"prompt":"hello"' in client.published[1]

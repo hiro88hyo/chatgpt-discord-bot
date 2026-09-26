@@ -26,13 +26,16 @@ class AiService:
         provider: str,
         history: list[ConversationMessage],
         prompt: str,
+        model: str | None = None,
     ) -> str:
         if provider == "openai":
             return self._generate_openai(history, prompt)
         if provider == "gemini":
             return self._generate_gemini(history, prompt)
         if provider == "openrouter":
-            return self._generate_openrouter(history, prompt)
+            return self._generate_openrouter(
+                history, prompt, model or self._model_config.openrouter_model
+            )
         raise ValueError(f"Unsupported AI provider: {provider}")
 
     def _generate_openai(self, history: list[ConversationMessage], prompt: str) -> str:
@@ -85,7 +88,7 @@ class AiService:
         return response.text.strip()
 
     def _generate_openrouter(
-        self, history: list[ConversationMessage], prompt: str
+        self, history: list[ConversationMessage], prompt: str, model: str
     ) -> str:
         if not self._settings.openrouter_api_key:
             raise ConfigurationError(
@@ -102,7 +105,7 @@ class AiService:
             base_url=OPENROUTER_BASE_URL,
             timeout=self._settings.http_timeout_seconds,
         ).chat.completions.create(
-            model=self._model_config.openrouter_model,
+            model=model,
             messages=messages,
         )
         content = response.choices[0].message.content if response.choices else None

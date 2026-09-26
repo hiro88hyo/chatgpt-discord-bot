@@ -227,6 +227,50 @@ def test_decode_pubsub_event_accepts_openrouter() -> None:
     assert job.provider == "openrouter"
 
 
+def test_decode_pubsub_event_model_selects_openrouter() -> None:
+    job = decode_pubsub_event(
+        _event(
+            {
+                "application_id": "app",
+                "interaction_token": "token",
+                "channel_id": "channel",
+                "channel_type": 0,
+                "prompt": "hello",
+                "model": "google/gemini-3.8-flash",
+            }
+        )
+    )
+
+    assert job.provider == "openrouter"
+    assert job.model == "google/gemini-3.8-flash"
+
+
+@pytest.mark.parametrize(
+    ("provider", "model"),
+    [
+        (None, "unlisted/model"),
+        ("gemini", "openrouter/auto"),
+    ],
+)
+def test_decode_pubsub_event_rejects_invalid_model(
+    provider: str | None, model: str
+) -> None:
+    with pytest.raises(ValueError):
+        decode_pubsub_event(
+            _event(
+                {
+                    "application_id": "app",
+                    "interaction_token": "token",
+                    "channel_id": "channel",
+                    "channel_type": 0,
+                    "prompt": "hello",
+                    "provider": provider,
+                    "model": model,
+                }
+            )
+        )
+
+
 def test_payload_obeys_answer_limit_and_disables_mentions() -> None:
     payload = build_response_payload(
         "question", "@everyone " + "a" * ANSWER_LIMIT, "gemini-model"
@@ -460,6 +504,51 @@ def test_handler_uses_openrouter_default_and_model_label(
     }
 
 
+def test_handler_uses_selected_openrouter_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = {}
+
+    class Discord:
+        def complete_interaction(
+            self, _job: ChatJob, _answer: str, model_name: str
+        ) -> None:
+            captured["label"] = model_name
+
+    def generate(**kwargs) -> str:
+        captured["provider"] = kwargs["provider"]
+        captured["model"] = kwargs["model"]
+        return "answer"
+
+    monkeypatch.setattr(handler_module, "Settings", SimpleNamespace(from_env=_settings))
+    monkeypatch.setattr(handler_module, "DiscordClient", lambda *_args: Discord())
+    monkeypatch.setattr(
+        handler_module, "_get_model_config", lambda _settings: _model_config()
+    )
+    monkeypatch.setattr(
+        handler_module, "AiService", lambda *_args: SimpleNamespace(generate=generate)
+    )
+
+    handler_module.handle_chat(
+        _event(
+            {
+                "application_id": "app",
+                "interaction_token": "token",
+                "channel_id": "channel",
+                "channel_type": 0,
+                "prompt": "question",
+                "model": "deepseek/deepseek-v4.1-flash",
+            }
+        )
+    )
+
+    assert captured == {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "label": "deepseek/deepseek-v4.1-flash",
+    }
+
+
 def test_openai_provider_uses_responses_api(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
@@ -596,6 +685,33 @@ def test_openrouter_provider_uses_chat_completions(
             {"role": "user", "content": "current question"},
         ],
     }
+
+
+def test_openrouter_provider_passes_selected_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = {}
+
+    class Completions:
+        def create(self, **kwargs):
+            request.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))]
+            )
+
+    class Client:
+        chat = SimpleNamespace(completions=Completions())
+
+    monkeypatch.setattr(ai_module, "OpenAI", lambda **_kwargs: Client())
+
+    AiService(_settings(), _model_config()).generate(
+        provider="openrouter",
+        history=[],
+        prompt="question",
+        model="anthropic/claude-sonnet-5",
+    )
+
+    assert request["model"] == "anthropic/claude-sonnet-5"
 
 
 def test_openrouter_provider_requires_key() -> None:

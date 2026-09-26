@@ -43,16 +43,17 @@ def handle_chat(cloud_event) -> None:
                 job.channel_id, settings.history_message_limit
             )
         provider = job.provider or model_config.default_provider
+        model_name = {
+            "openai": model_config.openai_model,
+            "gemini": model_config.gemini_model,
+            "openrouter": job.model or model_config.openrouter_model,
+        }[provider]
         answer = AiService(settings, model_config).generate(
             provider=provider,
             history=history,
             prompt=job.prompt,
+            model=job.model,
         )
-        model_name = {
-            "openai": model_config.openai_model,
-            "gemini": model_config.gemini_model,
-            "openrouter": model_config.openrouter_model,
-        }[provider]
         discord.complete_interaction(job, answer, model_name)
     except Exception as exc:
         logger.error("Chat processing failed (error_type=%s)", type(exc).__name__)

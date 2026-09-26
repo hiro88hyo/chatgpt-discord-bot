@@ -6,6 +6,14 @@ import os
 
 import requests
 
+OPENROUTER_MODEL_CHOICES = (
+    ("Auto（自動選択）", "openrouter/auto"),
+    ("Claude Sonnet 5", "anthropic/claude-sonnet-5"),
+    ("GPT-5.6 Terra", "openai/gpt-5.6-terra"),
+    ("Gemini 3.8 Flash", "google/gemini-3.8-flash"),
+    ("DeepSeek V4.1 Flash", "deepseek/deepseek-v4.1-flash"),
+)
+
 
 def main() -> None:
     application_id = os.environ["DISCORD_APPLICATION_ID"]
@@ -35,6 +43,16 @@ def main() -> None:
                             {"name": "OpenAI", "value": "openai"},
                             {"name": "Gemini", "value": "gemini"},
                             {"name": "OpenRouter", "value": "openrouter"},
+                        ],
+                    },
+                    {
+                        "name": "model",
+                        "description": "OpenRouterのモデル。選ぶとOpenRouterを使用",
+                        "type": 3,
+                        "required": False,
+                        "choices": [
+                            {"name": name, "value": model_id}
+                            for name, model_id in OPENROUTER_MODEL_CHOICES
                         ],
                     },
                 ],
