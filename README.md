@@ -46,7 +46,7 @@ Discord
 - `DEFAULT_AI_PROVIDER`（Parameter取得失敗時の既定値）
 - `OPENAI_MODEL`（Parameter取得失敗時の既定値）
 - `GEMINI_MODEL`（Parameter取得失敗時の既定値）
-- `OPENROUTER_MODEL`（Parameter取得失敗時の既定値。初期値 `openrouter/auto`）
+- `OPENROUTER_MODEL`（Parameter取得失敗時の既定値。初期値 `typesafe/jev-router`）
 - `SYSTEM_PROMPT`（任意）
 - `HISTORY_MESSAGE_LIMIT`（任意、既定値 `20`）
 
@@ -109,7 +109,8 @@ Functionの再デプロイは不要です。GitHub Actionsの `Update model conf
 `main` ブランチから手動実行し、既定プロバイダーと3つのモデルIDを入力してください。
 既存のモデル設定に `openrouter_model` がない場合は、環境変数の
 `OPENROUTER_MODEL` を使用します。
-OpenRouter の既定値 `openrouter/auto` はプロンプトに応じて利用モデルを選びます。
+`provider` と `model` を省略した `/chat` は既定で OpenRouter の `typesafe/jev-router` を使います。
+Jev Router はリクエストに応じて回答モデルを選びます。
 固定したい場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
 スラッシュコマンドの `model` を選んだリクエストでは、そのモデルIDが既定設定より優先されます。
 OpenRouter が別のモデルへ振り分けた場合、回答には「指定モデル → 実際のモデル」を表示します。
