@@ -96,6 +96,25 @@ def test_parse_chat_request_leaves_provider_unset() -> None:
     assert request.provider is None
 
 
+def test_parse_chat_request_accepts_openrouter() -> None:
+    request = parse_chat_request(
+        {
+            "application_id": "app",
+            "token": "token",
+            "channel": {"id": "channel", "type": 0},
+            "data": {
+                "name": "chat",
+                "options": [
+                    {"name": "prompt", "value": "hello"},
+                    {"name": "provider", "value": "openrouter"},
+                ],
+            },
+        }
+    )
+
+    assert request.provider == "openrouter"
+
+
 def test_publisher_waits_for_pubsub_acknowledgement() -> None:
     class Future:
         timeout = None

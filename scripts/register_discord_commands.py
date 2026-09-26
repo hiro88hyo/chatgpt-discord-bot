@@ -17,7 +17,7 @@ def main() -> None:
             {
                 "name": "chat",
                 "type": 1,
-                "description": "ChatGPTに話しかける",
+                "description": "AIに話しかける",
                 "options": [
                     {
                         "name": "prompt",
@@ -34,6 +34,7 @@ def main() -> None:
                         "choices": [
                             {"name": "OpenAI", "value": "openai"},
                             {"name": "Gemini", "value": "gemini"},
+                            {"name": "OpenRouter", "value": "openrouter"},
                         ],
                     },
                 ],

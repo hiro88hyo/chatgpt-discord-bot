@@ -1,6 +1,6 @@
 # ChatGPT Discord Bot
 
-Discord の `/chat` コマンドを OpenAI または Gemini へ渡し、回答を Discord に返す
+Discord の `/chat` コマンドを OpenAI、Gemini、OpenRouter のいずれかへ渡し、回答を Discord に返す
 Google Cloud Functions 向けのボットです。
 
 ## 構成
@@ -21,7 +21,7 @@ Discord
 - Python 3.11
 - Google Cloud CLI
 - Discord Application / Bot
-- OpenAI API キーまたは Gemini API キー
+- 利用するプロバイダーの API キー（OpenAI、Gemini、OpenRouter）
 - Pub/Sub topic（以下では `discord-chat-requests`）
 
 ## 環境変数
@@ -40,11 +40,13 @@ Discord
 - `DISCORD_BOT_TOKEN`
 - `OPENAI_API_KEY`（OpenAI を使う場合）
 - `GEMINI_API_KEY`（Gemini を使う場合）
+- `OPENROUTER_API_KEY`（OpenRouter を使う場合）
 - `MODEL_CONFIG_PARAMETER`（任意、既定値 `discord-bot-model-config`）
 - `MODEL_CONFIG_TTL_SECONDS`（任意、既定値 `60`）
 - `DEFAULT_AI_PROVIDER`（Parameter取得失敗時の既定値）
 - `OPENAI_MODEL`（Parameter取得失敗時の既定値）
 - `GEMINI_MODEL`（Parameter取得失敗時の既定値）
+- `OPENROUTER_MODEL`（Parameter取得失敗時の既定値。初期値 `openrouter/auto`）
 - `SYSTEM_PROMPT`（任意）
 - `HISTORY_MESSAGE_LIMIT`（任意、既定値 `20`）
 
@@ -74,6 +76,7 @@ python scripts/register_discord_commands.py
 ```
 
 このスクリプトは `PUT` でグローバルコマンド一覧を同期します。反映には時間がかかる場合があります。
+OpenRouter を選択肢に追加するには、変更後にこのスクリプトを再実行してください。
 
 ## Google Cloud へのデプロイ
 
@@ -96,7 +99,11 @@ Google Cloudへ鍵レス認証します。
 
 モデル設定はGoogle Cloud Parameter Managerから最大60秒間隔で更新されるため、
 Functionの再デプロイは不要です。GitHub Actionsの `Update model configuration` を
-`main` ブランチから手動実行し、既定プロバイダーと両モデルIDを入力してください。
+`main` ブランチから手動実行し、既定プロバイダーと3つのモデルIDを入力してください。
+既存のモデル設定に `openrouter_model` がない場合は、環境変数の
+`OPENROUTER_MODEL` を使用します。
+OpenRouter の既定値 `openrouter/auto` はプロンプトに応じて利用モデルを選びます。
+固定したい場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
 
 設定取得に失敗した場合は、直近に取得できた設定を使います。起動後に一度も取得
 できていない場合だけ、環境変数の既定値へフォールバックします。

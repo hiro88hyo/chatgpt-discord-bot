@@ -11,14 +11,16 @@ from typing import Any
 
 from google.cloud import parametermanager_v1
 
-from backend_app.config import Settings
+from backend_app.config import DEFAULT_OPENROUTER_MODEL, Settings
 
 logger = logging.getLogger(__name__)
-SUPPORTED_PROVIDERS = {"openai", "gemini"}
+SUPPORTED_PROVIDERS = {"openai", "gemini", "openrouter"}
 
 
-def _required_string(payload: Mapping[str, Any], name: str) -> str:
-    value = payload.get(name)
+def _required_string(
+    payload: Mapping[str, Any], name: str, default: str | None = None
+) -> str:
+    value = payload.get(name, default)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Model configuration field '{name}' must be a string")
     if len(value) > 200:
@@ -31,16 +33,25 @@ class ModelConfig:
     default_provider: str
     openai_model: str
     gemini_model: str
+    openrouter_model: str = DEFAULT_OPENROUTER_MODEL
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> ModelConfig:
+    def from_mapping(
+        cls,
+        payload: Mapping[str, Any],
+        *,
+        fallback_openrouter_model: str = DEFAULT_OPENROUTER_MODEL,
+    ) -> ModelConfig:
         provider = _required_string(payload, "default_provider").lower()
         if provider not in SUPPORTED_PROVIDERS:
-            raise ValueError("default_provider must be openai or gemini")
+            raise ValueError("default_provider must be openai, gemini, or openrouter")
         return cls(
             default_provider=provider,
             openai_model=_required_string(payload, "openai_model"),
             gemini_model=_required_string(payload, "gemini_model"),
+            openrouter_model=_required_string(
+                payload, "openrouter_model", fallback_openrouter_model
+            ),
         )
 
     @classmethod
@@ -50,6 +61,7 @@ class ModelConfig:
                 "default_provider": settings.fallback_default_provider,
                 "openai_model": settings.fallback_openai_model,
                 "gemini_model": settings.fallback_gemini_model,
+                "openrouter_model": settings.fallback_openrouter_model,
             }
         )
 
@@ -100,4 +112,6 @@ class ModelConfigProvider:
         payload = json.loads(raw_payload)
         if not isinstance(payload, Mapping):
             raise ValueError("Model configuration must be a JSON object")
-        return ModelConfig.from_mapping(payload)
+        return ModelConfig.from_mapping(
+            payload, fallback_openrouter_model=self._settings.fallback_openrouter_model
+        )

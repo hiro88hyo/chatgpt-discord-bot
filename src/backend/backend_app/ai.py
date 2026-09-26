@@ -12,6 +12,8 @@ from backend_app.config import ConfigurationError, Settings
 from backend_app.model_config import ModelConfig
 from backend_app.models import ConversationMessage
 
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 
 class AiService:
     def __init__(self, settings: Settings, model_config: ModelConfig) -> None:
@@ -29,6 +31,8 @@ class AiService:
             return self._generate_openai(history, prompt)
         if provider == "gemini":
             return self._generate_gemini(history, prompt)
+        if provider == "openrouter":
+            return self._generate_openrouter(history, prompt)
         raise ValueError(f"Unsupported AI provider: {provider}")
 
     def _generate_openai(self, history: list[ConversationMessage], prompt: str) -> str:
@@ -79,3 +83,29 @@ class AiService:
         if not response.text:
             raise RuntimeError("Gemini returned an empty response")
         return response.text.strip()
+
+    def _generate_openrouter(
+        self, history: list[ConversationMessage], prompt: str
+    ) -> str:
+        if not self._settings.openrouter_api_key:
+            raise ConfigurationError(
+                "OPENROUTER_API_KEY is required for the OpenRouter provider"
+            )
+
+        messages = [{"role": "system", "content": self._settings.system_prompt}]
+        messages.extend(
+            {"role": message.role, "content": message.content} for message in history
+        )
+        messages.append({"role": "user", "content": prompt})
+        response = OpenAI(
+            api_key=self._settings.openrouter_api_key,
+            base_url=OPENROUTER_BASE_URL,
+            timeout=self._settings.http_timeout_seconds,
+        ).chat.completions.create(
+            model=self._model_config.openrouter_model,
+            messages=messages,
+        )
+        content = response.choices[0].message.content if response.choices else None
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError("OpenRouter returned an empty response")
+        return content.strip()
