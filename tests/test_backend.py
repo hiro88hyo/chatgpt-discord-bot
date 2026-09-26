@@ -236,13 +236,13 @@ def test_decode_pubsub_event_model_selects_openrouter() -> None:
                 "channel_id": "channel",
                 "channel_type": 0,
                 "prompt": "hello",
-                "model": "google/gemini-3.8-flash",
+                "model": "typesafe/jev-router",
             }
         )
     )
 
     assert job.provider == "openrouter"
-    assert job.model == "google/gemini-3.8-flash"
+    assert job.model == "typesafe/jev-router"
 
 
 @pytest.mark.parametrize(
@@ -709,10 +709,10 @@ def test_openrouter_provider_passes_selected_model(
         provider="openrouter",
         history=[],
         prompt="question",
-        model="anthropic/claude-opus-5.5",
+        model="typesafe/jev-router",
     )
 
-    assert request["model"] == "anthropic/claude-opus-5.5"
+    assert request["model"] == "typesafe/jev-router"
 
 
 def test_openrouter_provider_requires_key() -> None:
