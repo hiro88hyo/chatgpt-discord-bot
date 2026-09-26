@@ -10,7 +10,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "あなたは優秀なアシスタントです。"
     "ユーザーからの質問に対し700から800文字程度で簡潔に回答します。"
 )
-DEFAULT_OPENROUTER_MODEL = "openrouter/auto"
+DEFAULT_OPENROUTER_MODEL = "typesafe/jev-router"
 
 
 class ConfigurationError(RuntimeError):
@@ -61,7 +61,7 @@ class Settings:
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ) -> Settings:
-        default_provider = env.get("DEFAULT_AI_PROVIDER", "openai").strip().lower()
+        default_provider = env.get("DEFAULT_AI_PROVIDER", "openrouter").strip().lower()
         if default_provider not in {"openai", "gemini", "openrouter"}:
             raise ConfigurationError(
                 "DEFAULT_AI_PROVIDER must be openai, gemini, or openrouter"

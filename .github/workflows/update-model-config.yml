@@ -7,7 +7,7 @@ on:
         description: Provider used when /chat omits the provider option
         required: true
         type: choice
-        default: openai
+        default: openrouter
         options:
           - openai
           - gemini
@@ -26,7 +26,7 @@ on:
         description: OpenRouter model ID
         required: true
         type: string
-        default: openrouter/auto
+        default: typesafe/jev-router
 
 permissions:
   contents: read

@@ -30,7 +30,7 @@ variable "pubsub_topic_name" {
 variable "default_ai_provider" {
   description = "Default provider when the Discord option is omitted."
   type        = string
-  default     = "openai"
+  default     = "openrouter"
 
   validation {
     condition     = contains(["openai", "gemini", "openrouter"], var.default_ai_provider)
@@ -53,7 +53,7 @@ variable "gemini_model" {
 variable "openrouter_model" {
   description = "OpenRouter model ID passed to the Chat Completions API."
   type        = string
-  default     = "openrouter/auto"
+  default     = "typesafe/jev-router"
 }
 
 variable "history_message_limit" {

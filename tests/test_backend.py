@@ -73,7 +73,7 @@ def test_backend_settings_load_model_fallbacks() -> None:
 
     assert settings.fallback_default_provider == "gemini"
     assert settings.fallback_openai_model == "openai-fallback"
-    assert settings.fallback_openrouter_model == "openrouter/auto"
+    assert settings.fallback_openrouter_model == "typesafe/jev-router"
     assert settings.model_config_ttl_seconds == 60
     assert settings.system_prompt == DEFAULT_SYSTEM_PROMPT
     assert settings.system_prompt == (
@@ -90,9 +90,10 @@ def test_backend_settings_use_current_default_models() -> None:
         }
     )
 
+    assert settings.fallback_default_provider == "openrouter"
     assert settings.fallback_openai_model == "gpt-5.6-terra"
     assert settings.fallback_gemini_model == "gemini-3.8-flash"
-    assert settings.fallback_openrouter_model == "openrouter/auto"
+    assert settings.fallback_openrouter_model == "typesafe/jev-router"
 
 
 def test_backend_settings_accept_openrouter_configuration() -> None:
