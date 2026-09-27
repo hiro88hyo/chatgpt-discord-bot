@@ -53,7 +53,7 @@ variable "gemini_model" {
 variable "openrouter_model" {
   description = "OpenRouter model ID passed to the Chat Completions API."
   type        = string
-  default     = "typesafe/jev-router"
+  default     = "google/gemini-3.8-flash"
 }
 
 variable "history_message_limit" {

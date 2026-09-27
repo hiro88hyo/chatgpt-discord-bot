@@ -10,7 +10,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "あなたは優秀なアシスタントです。"
     "ユーザーからの質問に対し700から800文字程度で簡潔に回答します。"
 )
-DEFAULT_OPENROUTER_MODEL = "typesafe/jev-router"
+DEFAULT_OPENROUTER_MODEL = "google/gemini-3.8-flash"
 
 
 class ConfigurationError(RuntimeError):
