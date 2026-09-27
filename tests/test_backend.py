@@ -73,7 +73,7 @@ def test_backend_settings_load_model_fallbacks() -> None:
 
     assert settings.fallback_default_provider == "gemini"
     assert settings.fallback_openai_model == "openai-fallback"
-    assert settings.fallback_openrouter_model == "typesafe/jev-router"
+    assert settings.fallback_openrouter_model == "google/gemini-3.8-flash"
     assert settings.model_config_ttl_seconds == 60
     assert settings.system_prompt == DEFAULT_SYSTEM_PROMPT
     assert settings.system_prompt == (
@@ -93,7 +93,10 @@ def test_backend_settings_use_current_default_models() -> None:
     assert settings.fallback_default_provider == "openrouter"
     assert settings.fallback_openai_model == "gpt-5.6-terra"
     assert settings.fallback_gemini_model == "gemini-3.8-flash"
-    assert settings.fallback_openrouter_model == "typesafe/jev-router"
+    assert settings.fallback_openrouter_model == "google/gemini-3.8-flash"
+    config = ModelConfig.from_settings(settings)
+    assert config.default_provider == "openrouter"
+    assert config.openrouter_model == "google/gemini-3.8-flash"
 
 
 def test_backend_settings_accept_openrouter_configuration() -> None:
@@ -484,7 +487,7 @@ def test_handler_uses_openrouter_default_and_model_label(
         default_provider="openrouter",
         openai_model="openai-model",
         gemini_model="gemini-model",
-        openrouter_model="openrouter-model",
+        openrouter_model="google/gemini-3.8-flash",
     )
     monkeypatch.setattr(handler_module, "Settings", SimpleNamespace(from_env=_settings))
     monkeypatch.setattr(handler_module, "DiscordClient", lambda *_args: Discord())
@@ -508,7 +511,7 @@ def test_handler_uses_openrouter_default_and_model_label(
     assert captured == {
         "provider": "openrouter",
         "answer": "answer",
-        "model_name": "openrouter-model",
+        "model_name": "google/gemini-3.8-flash",
     }
 
 

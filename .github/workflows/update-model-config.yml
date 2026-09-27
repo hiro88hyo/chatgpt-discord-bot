@@ -26,7 +26,7 @@ on:
         description: OpenRouter model ID
         required: true
         type: string
-        default: typesafe/jev-router
+        default: google/gemini-3.8-flash
 
 permissions:
   contents: read

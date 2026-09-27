@@ -46,7 +46,7 @@ Discord
 - `DEFAULT_AI_PROVIDER`（Parameter取得失敗時の既定値）
 - `OPENAI_MODEL`（Parameter取得失敗時の既定値）
 - `GEMINI_MODEL`（Parameter取得失敗時の既定値）
-- `OPENROUTER_MODEL`（Parameter取得失敗時の既定値。初期値 `typesafe/jev-router`）
+- `OPENROUTER_MODEL`（Parameter取得失敗時の既定値。初期値 `google/gemini-3.8-flash`）
 - `SYSTEM_PROMPT`（任意）
 - `HISTORY_MESSAGE_LIMIT`（任意、既定値 `20`）
 
@@ -109,14 +109,16 @@ Functionの再デプロイは不要です。GitHub Actionsの `Update model conf
 `main` ブランチから手動実行し、既定プロバイダーと3つのモデルIDを入力してください。
 既存のモデル設定に `openrouter_model` がない場合は、環境変数の
 `OPENROUTER_MODEL` を使用します。
-`provider` と `model` を省略した `/chat` は既定で OpenRouter の `typesafe/jev-router` を使います。
-Jev Router はリクエストに応じて回答モデルを選びます。
-固定したい場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
+`provider` と `model` を省略した `/chat` は既定で OpenRouter の `google/gemini-3.8-flash` を使います。
+Jev Router を使う場合は、スラッシュコマンドの `model` で明示的に選べます。
+別のモデルを既定にする場合は [OpenRouter のモデル一覧](https://openrouter.ai/models) にあるモデルIDを設定してください。
 スラッシュコマンドの `model` を選んだリクエストでは、そのモデルIDが既定設定より優先されます。
 OpenRouter が別のモデルへ振り分けた場合、回答には「指定モデル → 実際のモデル」を表示します。
 
 設定取得に失敗した場合は、直近に取得できた設定を使います。起動後に一度も取得
 できていない場合だけ、環境変数の既定値へフォールバックします。
+既存の Parameter Manager の設定は自動更新されないため、既定モデルを切り替えるには
+`Update model configuration` を `openrouter_model=google/gemini-3.8-flash` で実行してください。
 
 ## セキュリティ上の注意
 
